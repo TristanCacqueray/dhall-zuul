@@ -3,29 +3,48 @@
 
 let ConnectionType
     : Type
-    = < Gerrit | Pagure | GitHub >
+    = < Gerrit | Pagure >
 
 let Connection
     : Type
     = { name : Text, type : ConnectionType }
 
-let ConnectionTriggerEvent
+let GerritRequire
     : Type
-    = { event : Text }
+    = { open : Optional Bool, current-patchset : Optional Bool }
 
-let ConnectionTrigger
+let PagureRequire
     : Type
-    = { mapKey : Text, mapValue : List ConnectionTriggerEvent }
+    = { merged : Optional Bool }
+
+let ConnectionRequireValue
+    : Type
+    = < Gerrit : GerritRequire | Pagure : PagureRequire >
+
+let PipelineConfigRequire
+    : Type
+    = { Gerrit : ConnectionRequireValue, Pagure : ConnectionRequireValue }
+
+let PipelineConfig
+    : Type
+    = { require : PipelineConfigRequire }
+
+let PipelineRenderRequire
+    : Type
+    = { mapKey : Text, mapValue : ConnectionRequireValue }
 
 let Pipeline
     : Type
     = { name : Text
       , description : Optional Text
       , connections : List Connection
+      , config : PipelineConfig
       }
 
-in  { ConnectionType = ConnectionType
-    , ConnectionTrigger = ConnectionTrigger
-    , Connection = Connection
+in  { Connection = Connection
+    , ConnectionType = ConnectionType
+    , ConnectionRequireValue = ConnectionRequireValue
     , Pipeline = Pipeline
+    , PipelineConfigRequire = PipelineConfigRequire
+    , PipelineRenderRequire = PipelineRenderRequire
     }

@@ -1,15 +1,19 @@
 {- This file demonstrate a config project configuration
--}
 
-let defaults = ../defaults.dhall
+-}
 
 let types = ../types.dhall
 
+let defaults = ../defaults.dhall
+
 let render = ../render.dhall
 
-let connection =
-      { name = "review.rdoproject.org", type = types.ConnectionType.Gerrit }
+let connections =
+        [ { name = "pagure.io", type = types.ConnectionType.Pagure }
+        , { name = "review.rdoproject.org", type = types.ConnectionType.Gerrit }
+        ]
+      : List types.Connection
 
-let pipeline = { name = "check", connections = [ connection ] }
+let checkPipeline = defaults.PipelineCheck::{ connections = connections }
 
-in  render.Pipeline (defaults.Pipeline ⫽ pipeline)
+in  render.Pipeline checkPipeline
