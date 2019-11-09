@@ -25,13 +25,33 @@ let PipelineConfigRequire
     : Type
     = { Gerrit : ConnectionRequireValue, Pagure : ConnectionRequireValue }
 
+let GerritTrigger
+    : Type
+    = { event : Text }
+
+let PagureTrigger
+    : Type
+    = { event : Text, action : Text }
+
+let ConnectionTriggerValue
+    : Type
+    = < Gerrit : List GerritTrigger | Pagure : List PagureTrigger >
+
+let PipelineConfigTrigger
+    : Type
+    = { Gerrit : ConnectionTriggerValue, Pagure : ConnectionTriggerValue }
+
 let PipelineConfig
     : Type
-    = { require : PipelineConfigRequire }
+    = { require : PipelineConfigRequire, trigger : PipelineConfigTrigger }
 
 let PipelineRenderRequire
     : Type
     = { mapKey : Text, mapValue : ConnectionRequireValue }
+
+let PipelineRenderTrigger
+    : Type
+    = { mapKey : Text, mapValue : ConnectionTriggerValue }
 
 let Pipeline
     : Type
@@ -44,7 +64,10 @@ let Pipeline
 in  { Connection = Connection
     , ConnectionType = ConnectionType
     , ConnectionRequireValue = ConnectionRequireValue
+    , ConnectionTriggerValue = ConnectionTriggerValue
     , Pipeline = Pipeline
     , PipelineConfigRequire = PipelineConfigRequire
+    , PipelineConfigTrigger = PipelineConfigTrigger
     , PipelineRenderRequire = PipelineRenderRequire
+    , PipelineRenderTrigger = PipelineRenderTrigger
     }

@@ -17,6 +17,16 @@ let PipelineCheck =
                       types.ConnectionRequireValue.Pagure
                         { merged = Some False }
                   }
+              , trigger =
+                  { Gerrit =
+                      types.ConnectionTriggerValue.Gerrit
+                        [ { event = "patchset-created" }
+                        , { event = "patchset-restored" }
+                        ]
+                  , Pagure =
+                      types.ConnectionTriggerValue.Pagure
+                        [ { event = "pg_pull_request", action = "opened" } ]
+                  }
               }
           }
       }
