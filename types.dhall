@@ -11,6 +11,12 @@ let Connection
 
 let Pipeline
     : Type
-    = { name : Text }
+    = { name : Text
+      , description : Optional Text
+      , connections : List Connection
+      }
 
-in  { Connection = Connection, Pipeline = Pipeline }
+in  { ConnectionType = ConnectionType
+    , Connection = Connection
+    , Pipeline = Pipeline
+    }
