@@ -3,6 +3,8 @@
 
 let types = ./types.dhall
 
+let Gerrit = ./defaults/gerrit.dhall
+
 let PipelineCheck =
       { Type =
           types.Pipeline.Config
@@ -27,46 +29,27 @@ let PipelineCheck =
                         λ ( connection
                           : types.Connection
                           )
-                      → [ { event =
-                              types.Gerrit.Event.patchset-created
-                          , comment = None Text
-                          , approval = None types.Gerrit.ApprovalList
-                          , require-approval = None types.Gerrit.ApprovalList
+                      → [ Gerrit.Trigger::{
+                          , event = types.Gerrit.Event.patchset-created
                           }
-                        , { event = types.Gerrit.Event.change-restored
-                          , comment = None Text
-                          , approval = None types.Gerrit.ApprovalList
-                          , require-approval = None types.Gerrit.ApprovalList
+                        , Gerrit.Trigger::{
+                          , event = types.Gerrit.Event.change-restored
                           }
-                        , { event =
-                              types.Gerrit.Event.comment-added
+                        , Gerrit.Trigger::{
+                          , event = types.Gerrit.Event.comment-added
                           , comment =
                               Some
                                 ''
                                 (?i)^(Patch Set [0-9]+:)?( [\w\\+-]*)*(\n\n)?\s*(recheck|reverify)
                                 ''
-                          , approval = None types.Gerrit.ApprovalList
-                          , require-approval = None types.Gerrit.ApprovalList
                           }
-                        , { event = types.Gerrit.Event.comment-added
-                          , comment = None Text
-                          , approval =
-                              Some
-                                [ toMap
-                                    { Workflow =
-                                        types.Gerrit.ApprovalValue.Integer +1
-                                    }
-                                ]
+                        , Gerrit.Trigger::{
+                          , event = types.Gerrit.Event.comment-added
+                          , approval = Some [ Gerrit.Approval.Workflow +1 ]
                           , require-approval =
                               Some
-                                [ toMap
-                                    { Verified =
-                                        types.Gerrit.ApprovalValue.IntegerList
-                                          [ -1, -2 ]
-                                    , username =
-                                        types.Gerrit.ApprovalValue.Text
-                                          connection.user
-                                    }
+                                [   Gerrit.Approval.Verified [ -1, -2 ]
+                                  # Gerrit.Approval.Username connection.user
                                 ]
                           }
                         ]
