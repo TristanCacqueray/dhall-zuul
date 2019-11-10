@@ -4,7 +4,7 @@
 let types = ./types.dhall
 
 let PipelineCheck =
-      { Type = types.Pipeline
+      { Type = types.Pipeline.Config
       , default =
           { name = "check"
           , description = Some "The check pipeline"
