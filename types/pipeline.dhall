@@ -25,15 +25,16 @@ let RequireRender
 
 let TriggerConfig
     : Type
-    = { Gerrit : List Gerrit.Trigger, Pagure : List Pagure.Trigger }
+    = { Gerrit : Gerrit.Trigger, Pagure : List Pagure.Trigger }
 
 let TriggerValue
     : Type
-    = < Gerrit : List Gerrit.Trigger | Pagure : List Pagure.Trigger >
+    = < Gerrit : List Gerrit.TriggerValue | Pagure : List Pagure.Trigger >
 
 let TriggerTransform =
-        λ(config : TriggerConfig)
-      → { Gerrit = TriggerValue.Gerrit config.Gerrit
+        λ(connection : Connection)
+      → λ(config : TriggerConfig)
+      → { Gerrit = TriggerValue.Gerrit (config.Gerrit connection)
         , Pagure = TriggerValue.Pagure config.Pagure
         }
 

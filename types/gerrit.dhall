@@ -7,9 +7,17 @@ let Connection =
       , default = { type = ConnectionTypes.Gerrit, user = None Text }
       }
 
+let ApprovalValue
+    : Type
+    = < Text : Optional Text | Integer : Integer | IntegerList : List Integer >
+
 let Approval
     : Type
-    = List { mapKey : Text, mapValue : Optional Text }
+    = List { mapKey : Text, mapValue : ApprovalValue }
+
+let ApprovalList
+    : Type
+    = List Approval
 
 let RequireValue
     : Type
@@ -26,14 +34,25 @@ let Event
     : Type
     = < patchset-created | change-restored | comment-added >
 
+let TriggerValue
+    : Type
+    = { event : Event
+      , comment : Optional Text
+      , approval : Optional ApprovalList
+      , require-approval : Optional ApprovalList
+      }
+
 let Trigger
     : Type
-    = { event : Event, comment : Optional Text }
+    = ConnectionType → List TriggerValue
 
 in  { Connection = Connection
     , Event = Event
     , Approval = Approval
+    , ApprovalList = ApprovalList
+    , ApprovalValue = ApprovalValue
     , Require = Require
     , RequireValue = RequireValue
     , Trigger = Trigger
+    , TriggerValue = TriggerValue
     }

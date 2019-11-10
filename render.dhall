@@ -13,7 +13,9 @@ let RenderPipelineTriggers =
           (   λ(connection : types.Connection)
             → { mapKey = connection.name
               , mapValue =
-                  merge (types.Pipeline.TriggerTransform config) connection.type
+                  merge
+                    (types.Pipeline.TriggerTransform connection config)
+                    connection.type
               }
           )
 
