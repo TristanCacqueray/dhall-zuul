@@ -12,6 +12,14 @@ The `config.dhall` evaluation result in:
 # dhall-to-yaml --explain --omitEmpty --file examples/config.dhall
 - pipeline:
     description: The check pipeline
+    failure:
+      mqtt:
+        topic: zuul/{pipeline}/result/{project}/{branch}
+      pagure.io:
+        comment: true
+        status: failure
+      review.rdoproject.org:
+        Verified: -1
     manager: independent
     name: check
     precedence: low
@@ -29,6 +37,14 @@ The `config.dhall` evaluation result in:
         status: pending
       review.rdoproject.org:
         Verified: 0
+    success:
+      mqtt:
+        topic: zuul/{pipeline}/result/{project}/{branch}
+      pagure.io:
+        comment: true
+        status: success
+      review.rdoproject.org:
+        Verified: 1
     trigger:
       pagure.io:
       - action: opened

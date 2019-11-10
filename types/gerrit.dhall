@@ -48,7 +48,7 @@ let Trigger
 
 let StatusValue
     : Type
-    = { Verified : Natural }
+    = { Verified : Integer }
 
 let Status
     : Type

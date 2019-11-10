@@ -58,12 +58,26 @@ let PipelineCheck =
                   }
               , start =
                     { Gerrit =
-                        λ(connection : types.Connection) → { Verified = 0 }
+                        λ(connection : types.Connection) → { Verified = +0 }
                     , Pagure = { status = "pending", comment = False }
                     , Mqtt =
                         { topic = "zuul/{pipeline}/start/{project}/{branch}" }
                     }
                   : types.Pipeline.StatusConfig
+              , success =
+                  { Gerrit =
+                      λ(connection : types.Connection) → { Verified = +1 }
+                  , Pagure = { status = "success", comment = True }
+                  , Mqtt =
+                      { topic = "zuul/{pipeline}/result/{project}/{branch}" }
+                  }
+              , failure =
+                  { Gerrit =
+                      λ(connection : types.Connection) → { Verified = -1 }
+                  , Pagure = { status = "failure", comment = True }
+                  , Mqtt =
+                      { topic = "zuul/{pipeline}/result/{project}/{branch}" }
+                  }
               }
           }
       }

@@ -96,6 +96,8 @@ let Config
           { require : RequireConfig
           , trigger : TriggerConfig
           , start : StatusConfig
+          , success : StatusConfig
+          , failure : StatusConfig
           }
       }
 

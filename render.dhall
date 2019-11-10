@@ -80,6 +80,14 @@ let RenderPipeline =
                   RenderPipelineStatus
                     pipeline.config.start
                     (Get ConnectionReporters pipeline.connections)
+              , success =
+                  RenderPipelineStatus
+                    pipeline.config.success
+                    (Get ConnectionReporters pipeline.connections)
+              , failure =
+                  RenderPipelineStatus
+                    pipeline.config.failure
+                    (Get ConnectionReporters pipeline.connections)
               }
           }
         ]
