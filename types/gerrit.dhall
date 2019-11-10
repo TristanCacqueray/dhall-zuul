@@ -3,11 +3,24 @@ let ConnectionTypes = ./connections.dhall
 let ConnectionType = ./connection.dhall
 
 let Connection =
-      { Type = ConnectionType, default = { type = ConnectionTypes.Gerrit } }
+      { Type = ConnectionType
+      , default = { type = ConnectionTypes.Gerrit, user = None Text }
+      }
+
+let Approval
+    : Type
+    = List { mapKey : Text, mapValue : Optional Text }
+
+let RequireValue
+    : Type
+    = { open : Optional Bool
+      , current-patchset : Optional Bool
+      , approval : Optional Approval
+      }
 
 let Require
     : Type
-    = { open : Optional Bool, current-patchset : Optional Bool }
+    = ConnectionType → RequireValue
 
 let Event
     : Type
@@ -19,6 +32,8 @@ let Trigger
 
 in  { Connection = Connection
     , Event = Event
+    , Approval = Approval
     , Require = Require
+    , RequireValue = RequireValue
     , Trigger = Trigger
     }

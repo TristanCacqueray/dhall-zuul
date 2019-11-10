@@ -10,11 +10,12 @@ let RequireConfig
 
 let RequireValue
     : Type
-    = < Gerrit : Gerrit.Require | Pagure : Pagure.Require >
+    = < Gerrit : Gerrit.RequireValue | Pagure : Pagure.Require >
 
 let RequireTransform =
-        λ(config : RequireConfig)
-      → { Gerrit = RequireValue.Gerrit config.Gerrit
+        λ(connection : Connection)
+      → λ(config : RequireConfig)
+      → { Gerrit = RequireValue.Gerrit (config.Gerrit connection)
         , Pagure = RequireValue.Pagure config.Pagure
         }
 

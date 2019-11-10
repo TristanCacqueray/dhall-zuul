@@ -3,7 +3,9 @@ let ConnectionTypes = ./connections.dhall
 let ConnectionType = ./connection.dhall
 
 let Connection =
-      { Type = ConnectionType, default = { type = ConnectionTypes.Pagure } }
+      { Type = ConnectionType
+      , default = { type = ConnectionTypes.Pagure, user = None Text }
+      }
 
 let Require
     : Type

@@ -25,7 +25,9 @@ let RenderPipelineRequires =
           (   λ(connection : types.Connection)
             → { mapKey = connection.name
               , mapValue =
-                  merge (types.Pipeline.RequireTransform config) connection.type
+                  merge
+                    (types.Pipeline.RequireTransform connection config)
+                    connection.type
               }
           )
 

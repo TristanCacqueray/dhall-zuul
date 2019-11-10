@@ -14,7 +14,12 @@ let PipelineCheck =
           , manager = types.Pipeline.Manager.Independent
           , config =
               { require =
-                  { Gerrit = { open = Some True, current-patchset = Some True }
+                  { Gerrit =
+                        λ(connection : types.Connection)
+                      → { open = Some True
+                        , current-patchset = Some True
+                        , approval = None types.Gerrit.Approval
+                        }
                   , Pagure = { merged = Some False }
                   }
               , trigger =
