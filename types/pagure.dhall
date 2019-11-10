@@ -15,4 +15,12 @@ let Trigger
     : Type
     = { event : Text, action : Text }
 
-in  { Connection = Connection, Require = Require, Trigger = Trigger }
+let Status
+    : Type
+    = { status : Text, comment : Bool }
+
+in  { Connection = Connection
+    , Require = Require
+    , Trigger = Trigger
+    , Status = Status
+    }

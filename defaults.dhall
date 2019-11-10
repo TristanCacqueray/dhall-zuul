@@ -56,6 +56,14 @@ let PipelineCheck =
                   , Pagure =
                       [ { event = "pg_pull_request", action = "opened" } ]
                   }
+              , start =
+                    { Gerrit =
+                        λ(connection : types.Connection) → { Verified = 0 }
+                    , Pagure = { status = "pending", comment = False }
+                    , Mqtt =
+                        { topic = "zuul/{pipeline}/start/{project}/{branch}" }
+                    }
+                  : types.Pipeline.StatusConfig
               }
           }
       }

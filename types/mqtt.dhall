@@ -7,4 +7,8 @@ let Connection =
       , default = { type = ConnectionTypes.Mqtt, user = None Text }
       }
 
-in  { Connection = Connection }
+let Status
+    : Type
+    = { topic : Text }
+
+in  { Connection = Connection, Status = Status }

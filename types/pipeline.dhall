@@ -4,6 +4,8 @@ let Pagure = ./pagure.dhall
 
 let Gerrit = ./gerrit.dhall
 
+let Mqtt = ./mqtt.dhall
+
 let RequireConfig
     : Type
     = { Gerrit : Gerrit.Require, Pagure : Pagure.Require }
@@ -50,6 +52,29 @@ let TriggerRender
     : Type
     = { mapKey : Text, mapValue : TriggerValue }
 
+let StatusConfig
+    : Type
+    = { Gerrit : Gerrit.Status, Pagure : Pagure.Status, Mqtt : Mqtt.Status }
+
+let StatusValue
+    : Type
+    = < Gerrit : Gerrit.StatusValue
+      | Pagure : Pagure.Status
+      | Mqtt : Mqtt.Status
+      >
+
+let StatusTransform =
+        λ(connection : Connection)
+      → λ(config : StatusConfig)
+      → { Gerrit = StatusValue.Gerrit (config.Gerrit connection)
+        , Pagure = StatusValue.Pagure config.Pagure
+        , Mqtt = StatusValue.Mqtt config.Mqtt
+        }
+
+let StatusRender
+    : Type
+    = { mapKey : Text, mapValue : StatusValue }
+
 let Manager
     : Type
     = < Independent | Dependent >
@@ -67,7 +92,11 @@ let Config
       , manager : Manager
       , precedence : Precedence
       , connections : List Connection
-      , config : { require : RequireConfig, trigger : TriggerConfig }
+      , config :
+          { require : RequireConfig
+          , trigger : TriggerConfig
+          , start : StatusConfig
+          }
       }
 
 in  { Config = Config
@@ -80,4 +109,7 @@ in  { Config = Config
     , TriggerConfig = TriggerConfig
     , TriggerTransform = TriggerTransform
     , TriggerRender = TriggerRender
+    , StatusConfig = StatusConfig
+    , StatusTransform = StatusTransform
+    , StatusRender = StatusRender
     }

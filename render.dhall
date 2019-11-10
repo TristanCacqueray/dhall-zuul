@@ -10,6 +10,9 @@ let ConnectionFilter = { Gerrit : Bool, Pagure : Bool, Mqtt : Bool }
 let ConnectionTriggers =
       { Gerrit = True, Pagure = True, Mqtt = False } : ConnectionFilter
 
+let ConnectionReporters =
+      { Gerrit = True, Pagure = True, Mqtt = True } : ConnectionFilter
+
 let Get =
         λ(list : ConnectionFilter)
       → Prelude.List.filter
@@ -44,6 +47,20 @@ let RenderPipelineRequires =
               }
           )
 
+let RenderPipelineStatus =
+        λ(config : types.Pipeline.StatusConfig)
+      → Prelude.List.map
+          types.Connection
+          types.Pipeline.StatusRender
+          (   λ(connection : types.Connection)
+            → { mapKey = connection.name
+              , mapValue =
+                  merge
+                    (types.Pipeline.StatusTransform connection config)
+                    connection.type
+              }
+          )
+
 let RenderPipeline =
         λ(pipeline : types.Pipeline.Config)
       → [ { pipeline =
@@ -59,6 +76,10 @@ let RenderPipeline =
                   RenderPipelineTriggers
                     pipeline.config.trigger
                     (Get ConnectionTriggers pipeline.connections)
+              , start =
+                  RenderPipelineStatus
+                    pipeline.config.start
+                    (Get ConnectionReporters pipeline.connections)
               }
           }
         ]

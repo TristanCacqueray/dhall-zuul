@@ -21,6 +21,14 @@ The `config.dhall` evaluation result in:
       review.rdoproject.org:
         current-patchset: true
         open: true
+    start:
+      mqtt:
+        topic: zuul/{pipeline}/start/{project}/{branch}
+      pagure.io:
+        comment: false
+        status: pending
+      review.rdoproject.org:
+        Verified: 0
     trigger:
       pagure.io:
       - action: opened

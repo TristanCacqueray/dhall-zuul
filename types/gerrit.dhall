@@ -46,6 +46,14 @@ let Trigger
     : Type
     = ConnectionType → List TriggerValue
 
+let StatusValue
+    : Type
+    = { Verified : Natural }
+
+let Status
+    : Type
+    = ConnectionType → StatusValue
+
 in  { Connection = Connection
     , Event = Event
     , Approval = Approval
@@ -55,4 +63,6 @@ in  { Connection = Connection
     , RequireValue = RequireValue
     , Trigger = Trigger
     , TriggerValue = TriggerValue
+    , Status = Status
+    , StatusValue = StatusValue
     }
