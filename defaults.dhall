@@ -8,6 +8,7 @@ let PipelineCheck =
       , default =
           { name = "check"
           , description = Some "The check pipeline"
+          , manager = types.Pipeline.Manager.Independent
           , config =
               { require =
                   { Gerrit =

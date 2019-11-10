@@ -40,15 +40,24 @@ let TriggerRender
     : Type
     = { mapKey : Text, mapValue : TriggerValue }
 
+let Manager
+    : Type
+    = < Independent | Dependent >
+
+let ManagerValue = { Independent = "independent", Dependent = "dependent" }
+
 let Config
     : Type
     = { name : Text
       , description : Optional Text
+      , manager : Manager
       , connections : List Connection
       , config : { require : RequireConfig, trigger : TriggerConfig }
       }
 
 in  { Config = Config
+    , Manager = Manager
+    , ManagerValue = ManagerValue
     , RequireConfig = RequireConfig
     , RequireTransform = RequireTransform
     , RequireRender = RequireRender

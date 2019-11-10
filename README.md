@@ -12,6 +12,7 @@ The `config.dhall` evaluation result in:
 # dhall-to-yaml --explain --omitEmpty --file examples/config.dhall
 - pipeline:
     description: The check pipeline
+    manager: independent
     name: check
     require:
       pagure.io:
