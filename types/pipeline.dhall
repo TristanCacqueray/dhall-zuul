@@ -44,6 +44,10 @@ let Manager
     : Type
     = < Independent | Dependent >
 
+let Precedence
+    : Type
+    = < low | high >
+
 let ManagerValue = { Independent = "independent", Dependent = "dependent" }
 
 let Config
@@ -51,12 +55,14 @@ let Config
     = { name : Text
       , description : Optional Text
       , manager : Manager
+      , precedence : Precedence
       , connections : List Connection
       , config : { require : RequireConfig, trigger : TriggerConfig }
       }
 
 in  { Config = Config
     , Manager = Manager
+    , Precedence = Precedence
     , ManagerValue = ManagerValue
     , RequireConfig = RequireConfig
     , RequireTransform = RequireTransform

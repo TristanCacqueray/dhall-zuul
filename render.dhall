@@ -34,6 +34,7 @@ let RenderPipeline =
       → [ { pipeline =
               { name = pipeline.name
               , description = pipeline.description
+              , precedence = pipeline.precedence
               , manager = merge types.Pipeline.ManagerValue pipeline.manager
               , require =
                   RenderPipelineRequires

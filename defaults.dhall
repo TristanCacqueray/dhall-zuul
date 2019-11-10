@@ -10,6 +10,7 @@ let PipelineCheck =
           { name =
               "check"
           , description = Some "The check pipeline"
+          , precedence = types.Pipeline.Precedence.low
           , manager = types.Pipeline.Manager.Independent
           , config =
               { require =
