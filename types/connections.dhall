@@ -1,2 +1,2 @@
 {- The list of possible connection type -}
-< Gerrit | Pagure >
+< Gerrit | Pagure | Mqtt >

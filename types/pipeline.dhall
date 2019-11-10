@@ -10,13 +10,17 @@ let RequireConfig
 
 let RequireValue
     : Type
-    = < Gerrit : Gerrit.RequireValue | Pagure : Pagure.Require >
+    = < Gerrit : Gerrit.RequireValue
+      | Pagure : Pagure.Require
+      | Incorrect : Text
+      >
 
 let RequireTransform =
         λ(connection : Connection)
       → λ(config : RequireConfig)
       → { Gerrit = RequireValue.Gerrit (config.Gerrit connection)
         , Pagure = RequireValue.Pagure config.Pagure
+        , Mqtt = RequireValue.Incorrect "todo: add exception"
         }
 
 let RequireRender
@@ -29,13 +33,17 @@ let TriggerConfig
 
 let TriggerValue
     : Type
-    = < Gerrit : List Gerrit.TriggerValue | Pagure : List Pagure.Trigger >
+    = < Gerrit : List Gerrit.TriggerValue
+      | Pagure : List Pagure.Trigger
+      | Incorrect : Text
+      >
 
 let TriggerTransform =
         λ(connection : Connection)
       → λ(config : TriggerConfig)
       → { Gerrit = TriggerValue.Gerrit (config.Gerrit connection)
         , Pagure = TriggerValue.Pagure config.Pagure
+        , Mqtt = TriggerValue.Incorrect "todo: add exception"
         }
 
 let TriggerRender

@@ -5,6 +5,17 @@ let Prelude = ./Prelude.dhall
 
 let types = ./types.dhall
 
+let ConnectionFilter = { Gerrit : Bool, Pagure : Bool, Mqtt : Bool }
+
+let ConnectionTriggers =
+      { Gerrit = True, Pagure = True, Mqtt = False } : ConnectionFilter
+
+let Get =
+        λ(list : ConnectionFilter)
+      → Prelude.List.filter
+          types.Connection
+          (λ(connection : types.Connection) → merge list connection.type)
+
 let RenderPipelineTriggers =
         λ(config : types.Pipeline.TriggerConfig)
       → Prelude.List.map
@@ -43,11 +54,11 @@ let RenderPipeline =
               , require =
                   RenderPipelineRequires
                     pipeline.config.require
-                    pipeline.connections
+                    (Get ConnectionTriggers pipeline.connections)
               , trigger =
                   RenderPipelineTriggers
                     pipeline.config.trigger
-                    pipeline.connections
+                    (Get ConnectionTriggers pipeline.connections)
               }
           }
         ]

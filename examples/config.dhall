@@ -10,6 +10,7 @@ let connections =
         , name = "review.rdoproject.org"
         , user = Some "zuul"
         }
+      , zuul.types.Mqtt.Connection::{ name = "mqtt" }
       ]
 
 in  zuul.render.Pipeline
