@@ -23,7 +23,13 @@ let ConnectionRequireValue
 
 let PipelineConfigRequire
     : Type
-    = { Gerrit : ConnectionRequireValue, Pagure : ConnectionRequireValue }
+    = { Gerrit : GerritRequire, Pagure : PagureRequire }
+
+let PipelineConfigRequireTransform =
+        λ(config : PipelineConfigRequire)
+      → { Gerrit = ConnectionRequireValue.Gerrit config.Gerrit
+        , Pagure = ConnectionRequireValue.Pagure config.Pagure
+        }
 
 let GerritTrigger
     : Type
@@ -39,7 +45,13 @@ let ConnectionTriggerValue
 
 let PipelineConfigTrigger
     : Type
-    = { Gerrit : ConnectionTriggerValue, Pagure : ConnectionTriggerValue }
+    = { Gerrit : List GerritTrigger, Pagure : List PagureTrigger }
+
+let PipelineConfigTriggerTransform =
+        λ(config : PipelineConfigTrigger)
+      → { Gerrit = ConnectionTriggerValue.Gerrit config.Gerrit
+        , Pagure = ConnectionTriggerValue.Pagure config.Pagure
+        }
 
 let PipelineConfig
     : Type
@@ -63,11 +75,11 @@ let Pipeline
 
 in  { Connection = Connection
     , ConnectionType = ConnectionType
-    , ConnectionRequireValue = ConnectionRequireValue
-    , ConnectionTriggerValue = ConnectionTriggerValue
     , Pipeline = Pipeline
     , PipelineConfigRequire = PipelineConfigRequire
+    , PipelineConfigRequireTranform = PipelineConfigRequireTransform
     , PipelineConfigTrigger = PipelineConfigTrigger
+    , PipelineConfigTriggerTransform = PipelineConfigTriggerTransform
     , PipelineRenderRequire = PipelineRenderRequire
     , PipelineRenderTrigger = PipelineRenderTrigger
     }
