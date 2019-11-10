@@ -11,8 +11,7 @@ let PipelineCheck =
           , manager = types.Pipeline.Manager.Independent
           , config =
               { require =
-                  { Gerrit =
-                      { open = Some False, current-patchset = Some False }
+                  { Gerrit = { open = Some True, current-patchset = Some True }
                   , Pagure = { merged = Some False }
                   }
               , trigger =

@@ -18,8 +18,8 @@ The `config.dhall` evaluation result in:
       pagure.io:
         merged: false
       review.rdoproject.org:
-        current-patchset: false
-        open: false
+        current-patchset: true
+        open: true
     trigger:
       pagure.io:
       - action: opened
