@@ -14,6 +14,7 @@ The `config.dhall` evaluation result in:
     description: The check pipeline
     manager: independent
     name: check
+    precedence: low
     require:
       pagure.io:
         merged: false
@@ -26,5 +27,16 @@ The `config.dhall` evaluation result in:
         event: pg_pull_request
       review.rdoproject.org:
       - event: patchset-created
-      - event: patchset-restored
+      - event: change-restored
+      - comment: |
+          (?i)^(Patch Set [0-9]+:)?( [\w\\+-]*)*(\n\n)?\s*(recheck|reverify)
+        event: comment-added
+      - approval:
+        - Workflow: 1
+        event: comment-added
+        require-approval:
+        - Verified:
+          - -1
+          - -2
+          username: zuul
 ```
