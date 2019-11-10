@@ -5,10 +5,8 @@
 let zuul = ../package.dhall
 
 let connections =
-      [ { name = "pagure.io", type = zuul.types.ConnectionType.Pagure }
-      , { name = "review.rdoproject.org"
-        , type = zuul.types.ConnectionType.Gerrit
-        }
+      [ zuul.types.Pagure.Connection::{ name = "pagure.io" }
+      , zuul.types.Gerrit.Connection::{ name = "review.rdoproject.org" }
       ]
 
 in  zuul.render.Pipeline

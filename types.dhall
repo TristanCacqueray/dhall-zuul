@@ -1,85 +1,68 @@
 {- Zuul configuration types
 -}
 
-let ConnectionType
-    : Type
-    = < Gerrit | Pagure >
+let Connection = ./types/connection.dhall
 
-let Connection
-    : Type
-    = { name : Text, type : ConnectionType }
+let ConnectionType = ./types/connections.dhall
 
-let GerritRequire
-    : Type
-    = { open : Optional Bool, current-patchset : Optional Bool }
+let Pagure = ./types/pagure.dhall
 
-let PagureRequire
-    : Type
-    = { merged : Optional Bool }
+let Gerrit = ./types/gerrit.dhall
 
-let ConnectionRequireValue
+let PipelineRequireValue
     : Type
-    = < Gerrit : GerritRequire | Pagure : PagureRequire >
+    = < Gerrit : Gerrit.Require | Pagure : Pagure.Require >
 
-let PipelineConfigRequire
+let PipelineRequireConfig
     : Type
-    = { Gerrit : GerritRequire, Pagure : PagureRequire }
+    = { Gerrit : Gerrit.Require, Pagure : Pagure.Require }
 
-let PipelineConfigRequireTransform =
-        λ(config : PipelineConfigRequire)
-      → { Gerrit = ConnectionRequireValue.Gerrit config.Gerrit
-        , Pagure = ConnectionRequireValue.Pagure config.Pagure
+let PipelineRequireRender
+    : Type
+    = { mapKey : Text, mapValue : PipelineRequireValue }
+
+let PipelineRequireTransform =
+        λ(config : PipelineRequireConfig)
+      → { Gerrit = PipelineRequireValue.Gerrit config.Gerrit
+        , Pagure = PipelineRequireValue.Pagure config.Pagure
         }
 
-let GerritTrigger
+let PipelineTriggerValue
     : Type
-    = { event : Text }
+    = < Gerrit : List Gerrit.Trigger | Pagure : List Pagure.Trigger >
 
-let PagureTrigger
+let PipelineTriggerConfig
     : Type
-    = { event : Text, action : Text }
+    = { Gerrit : List Gerrit.Trigger, Pagure : List Pagure.Trigger }
 
-let ConnectionTriggerValue
-    : Type
-    = < Gerrit : List GerritTrigger | Pagure : List PagureTrigger >
-
-let PipelineConfigTrigger
-    : Type
-    = { Gerrit : List GerritTrigger, Pagure : List PagureTrigger }
-
-let PipelineConfigTriggerTransform =
-        λ(config : PipelineConfigTrigger)
-      → { Gerrit = ConnectionTriggerValue.Gerrit config.Gerrit
-        , Pagure = ConnectionTriggerValue.Pagure config.Pagure
+let PipelineTriggerTransform =
+        λ(config : PipelineTriggerConfig)
+      → { Gerrit = PipelineTriggerValue.Gerrit config.Gerrit
+        , Pagure = PipelineTriggerValue.Pagure config.Pagure
         }
 
-let PipelineConfig
+let PipelineTriggerRender
     : Type
-    = { require : PipelineConfigRequire, trigger : PipelineConfigTrigger }
-
-let PipelineRenderRequire
-    : Type
-    = { mapKey : Text, mapValue : ConnectionRequireValue }
-
-let PipelineRenderTrigger
-    : Type
-    = { mapKey : Text, mapValue : ConnectionTriggerValue }
+    = { mapKey : Text, mapValue : PipelineTriggerValue }
 
 let Pipeline
     : Type
     = { name : Text
       , description : Optional Text
       , connections : List Connection
-      , config : PipelineConfig
+      , config :
+          { require : PipelineRequireConfig, trigger : PipelineTriggerConfig }
       }
 
-in  { Connection = Connection
+in  { Pagure = Pagure
+    , Gerrit = Gerrit
+    , Connection = Connection
     , ConnectionType = ConnectionType
     , Pipeline = Pipeline
-    , PipelineConfigRequire = PipelineConfigRequire
-    , PipelineConfigRequireTranform = PipelineConfigRequireTransform
-    , PipelineConfigTrigger = PipelineConfigTrigger
-    , PipelineConfigTriggerTransform = PipelineConfigTriggerTransform
-    , PipelineRenderRequire = PipelineRenderRequire
-    , PipelineRenderTrigger = PipelineRenderTrigger
+    , PipelineRequireConfig = PipelineRequireConfig
+    , PipelineRequireTranform = PipelineRequireTransform
+    , PipelineRequireRender = PipelineRequireRender
+    , PipelineTriggerConfig = PipelineTriggerConfig
+    , PipelineTriggerTransform = PipelineTriggerTransform
+    , PipelineTriggerRender = PipelineTriggerRender
     }

@@ -6,30 +6,26 @@ let Prelude = ./Prelude.dhall
 let types = ./types.dhall
 
 let RenderPipelineTriggers =
-        λ(config : types.PipelineConfigTrigger)
+        λ(config : types.PipelineTriggerConfig)
       → Prelude.List.map
           types.Connection
-          types.PipelineRenderTrigger
+          types.PipelineTriggerRender
           (   λ(connection : types.Connection)
             → { mapKey = connection.name
               , mapValue =
-                  merge
-                    (types.PipelineConfigTriggerTransform config)
-                    connection.type
+                  merge (types.PipelineTriggerTransform config) connection.type
               }
           )
 
 let RenderPipelineRequires =
-        λ(config : types.PipelineConfigRequire)
+        λ(config : types.PipelineRequireConfig)
       → Prelude.List.map
           types.Connection
-          types.PipelineRenderRequire
+          types.PipelineRequireRender
           (   λ(connection : types.Connection)
             → { mapKey = connection.name
               , mapValue =
-                  merge
-                    (types.PipelineConfigRequireTranform config)
-                    connection.type
+                  merge (types.PipelineRequireTranform config) connection.type
               }
           )
 
