@@ -92,4 +92,28 @@ let RenderPipeline =
           }
         ]
 
-in  { Pipeline = RenderPipeline }
+let RenderProjectTemplate =
+        λ(template : types.Project.Template)
+      → let TemplateKeyValue
+            : Type
+            = < name : Text | pipeline : { jobs : List types.Project.Jobs } >
+
+        in  [ { project-template =
+                    [ { mapKey = "name"
+                      , mapValue = TemplateKeyValue.name template.name
+                      }
+                    ]
+                  # Prelude.List.map
+                      types.Project.Pipeline
+                      { mapKey : Text, mapValue : TemplateKeyValue }
+                      (   λ(pipeline : types.Project.Pipeline)
+                        → { mapKey = pipeline.name
+                          , mapValue =
+                              TemplateKeyValue.pipeline { jobs = pipeline.jobs }
+                          }
+                      )
+                      template.pipelines
+              }
+            ]
+
+in  { Pipeline = RenderPipeline, ProjectTemplate = RenderProjectTemplate }

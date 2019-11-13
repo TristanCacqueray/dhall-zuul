@@ -13,10 +13,13 @@ let Mqtt = ./types/mqtt.dhall
 
 let Pipeline = ./types/pipeline.dhall
 
+let Project = ./types/project.dhall
+
 in  { Pagure = Pagure
     , Gerrit = Gerrit
     , Mqtt = Mqtt
     , Connection = Connection
     , ConnectionType = ConnectionType
     , Pipeline = Pipeline
+    , Project = Project
     }
