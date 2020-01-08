@@ -1,3 +1,9 @@
+build:
+	operator-sdk build --image-builder podman quay.io/software-factory/zuul-operator:0.0.1
+
+build-local:
+	sudo ~/.local/bin/operator-sdk build --image-build-args "--root /var/lib/silverkube/storage --storage-driver vfs" --image-builder podman quay.io/software-factory/zuul-operator:0.0.1
+
 doc:
 	@(python3 -c "'Poor man autodoc generator' \
 '# Get README.d indexes'; \
