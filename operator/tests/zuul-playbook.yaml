@@ -1,0 +1,8 @@
+- name: Test zuul role
+  hosts: localhost
+  gather_facts: no
+  vars:
+    kubernetes_deploy_path: "~/dhall-operator/deploy/Kubernetes.dhall"
+    zuul_app_path: "~/dhall-zuul/operator/application/Connection.dhall"
+  roles:
+    - zuul

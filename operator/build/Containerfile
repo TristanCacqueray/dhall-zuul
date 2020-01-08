@@ -2,4 +2,6 @@ FROM quay.io/software-factory/dhall-operator:0.0.1
 
 COPY operator/watches.yaml ${HOME}/watches.yaml
 
+COPY operator/application ${HOME}/dhall/applications/zuul/
+
 COPY operator/roles/zuul/ ${HOME}/roles/zuul/

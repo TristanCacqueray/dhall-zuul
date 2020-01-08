@@ -11,9 +11,11 @@ let Input =
 
 let Helpers = ./helpers.dhall
 
+let Operator = ./Operator.dhall
+
 let Services = Helpers.Services
 
-let Service = ../../types/Service.dhall
+let Service = Operator.Types.Service
 
 let Prelude =
       https://prelude.dhall-lang.org/v12.0.0/package.dhall sha256:aea6817682359ae1939f3a15926b84ad5763c24a3740103202d2eaaea4d01f4c
@@ -39,7 +41,7 @@ let Connection/show =
 in  { Input = Input
     , Application =
             \(input : Input)
-        ->  (../../schemas/Application.dhall)::{
+        ->  Operator.Schemas.Application::{
             , name = input.name
             , kind = "zuul"
             , services =
@@ -51,8 +53,8 @@ in  { Input = Input
                 ]
             , environs = Helpers.DefaultEnv "db-pass"
             , volumes =
-                    \(serviceType : ../../types/ServiceType.dhall)
-                ->  let empty = [] : List ../../types/Volume.dhall
+                    \(serviceType : Operator.Types.ServiceType)
+                ->  let empty = [] : List Operator.Types.Volume
 
                     let first-project =
                           Optional/fold
@@ -91,7 +93,9 @@ in  { Input = Input
                                                 untrusted-projects:
                                         ''
                                     ++  Prelude.Text.concatSep
-                                          "\n"
+                                          ''
+
+                                          ''
                                           ( Prelude.List.map
                                               Text
                                               Text
@@ -100,7 +104,9 @@ in  { Input = Input
                                               )
                                               rest-project
                                           )
-                                    ++  "\n"
+                                    ++  ''
+
+                                        ''
                                 }
                               , { path = "id_rsa", content = input.ssh_key }
                               ]

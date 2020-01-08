@@ -1,8 +1,35 @@
 # dhall-zuul
 
-This repository illustrates [dhall-lang](https://dhall-lang.org/) usage for Zuul configuration objects.
+This repository contains [Zuul](https://zuul-ci.org) deployment object and dhall configuration.
 
-## Example
+## (WIP) Operator
+
+Using [dhall-operator](https://github.com/TristanCacqueray/dhall-operator),
+zuul application is defined [here](./operator/application/) and it can be deployed
+with this CustomResource:
+
+```yaml
+apiVersion: softwarefactory-project.io/v1alpha1
+kind: Zuul
+metadata:
+  name: simple-zuul
+spec:
+  connection:
+    name: opendev.org
+    driver: git
+    params:
+      baseurl: "https://opendev.org"
+  projects:
+    - zuul/zuul-base-jobs
+    - zuul/zuul-jobs
+```
+
+
+## (WIP) Zuul type
+
+Zuul objects are available as dhall type.
+
+### Pipeline
 
 A default check pipeline is defined like so: [defaults.dhall](./defaults.dhall).
 Then a config project can render it with custom connections like so: [examples/config.dhall](./examples/config.dhall).

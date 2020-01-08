@@ -1,14 +1,16 @@
-let Container = ../../schemas/Container.dhall
+let Operator = ./Operator.dhall
 
-let Service = ../../schemas/Service.dhall
+let Container = Operator.Schemas.Container
 
-let Port = ../../schemas/Port.dhall
+let Service = Operator.Schemas.Service
 
-let Env = ../../types/Env.dhall
+let Port = Operator.Schemas.Port
 
-let ServiceType = ../../types/ServiceType.dhall
+let Env = Operator.Types.Env
 
-let waitFor = ../../functions/waitFor.dhall
+let ServiceType = Operator.Types.ServiceType
+
+let waitFor = Operator.Functions.waitFor
 
 let org = "quay.io/software-factory"
 
@@ -132,12 +134,7 @@ let waitFor =
           //  { init-containers =
                   Some
                     [ { image = zuul-base
-                      , command =
-                          Some
-                            ( ../../functions/waitFor.dhall
-                                endpoint.host
-                                endpoint.port
-                            )
+                      , command = Some (waitFor endpoint.host endpoint.port)
                       }
                     ]
               }

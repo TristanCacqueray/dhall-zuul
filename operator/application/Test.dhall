@@ -18,9 +18,11 @@ let Input =
 
 let Helpers = ./helpers.dhall
 
+let Operator = ./Operator.dhall
+
 let Services = Helpers.Services
 
-let Service = ../../types/Service.dhall
+let Service = Operator.Types.Service
 
 in  { Input = Input
     , Application =
@@ -121,7 +123,7 @@ in  { Input = Input
                     (\(some : Text) -> [ Services.Launcher ])
                     ([] : List Service)
 
-            in  (../../schemas/Application.dhall)::{
+            in  Operator.Schemas.Application::{
                 , name = input.name
                 , kind = "zuul"
                 , services =
@@ -133,7 +135,7 @@ in  { Input = Input
                       ,     Services.Web
                         //  { ports =
                                 Some
-                                  [ (../../schemas/Port.dhall)::{
+                                  [ Operator.Schemas.Port::{
                                     , host =
                                         Some
                                           ( Optional/fold
@@ -152,8 +154,8 @@ in  { Input = Input
                     # launcher-service
                 , environs = Helpers.DefaultEnv db-password
                 , volumes =
-                        \(serviceType : ../../types/ServiceType.dhall)
-                    ->  let empty = [] : List ../../types/Volume.dhall
+                        \(serviceType : Operator.Types.ServiceType)
+                    ->  let empty = [] : List Operator.Types.Volume
 
                         let zuul-conf =
                               { name = "zuul"
@@ -197,7 +199,7 @@ in  { Input = Input
                               Optional/fold
                                 Text
                                 input.kubeconfig
-                                (List ../../types/Volume.dhall)
+                                (List Operator.Types.Volume)
                                 (     \(kubeconfig : Text)
                                   ->  [ { name = "nodepool"
                                         , dir = "/etc/nodepool"

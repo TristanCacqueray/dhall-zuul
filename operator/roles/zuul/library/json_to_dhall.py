@@ -14,10 +14,9 @@
 # under the License.
 
 import argparse
-import json
 import subprocess
 import sys
-from typing import Any, Dict, List, Optional
+from typing import List
 from ansible.module_utils.basic import AnsibleModule  # type: ignore
 
 
@@ -29,56 +28,30 @@ def pread(args: List[str], stdin: str) -> str:
     return stdout.decode('utf-8')
 
 
-def generate_ssh_key() -> str:
-    return subprocess.Popen(
-        ["ssh-keygen", "-f", "/proc/self/fd/1", "-t", "rsa", "-m", "pem", "-N", ""],
-        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate(
-            b'y\n')[0].decode('utf-8').split('(y/n)? ')[1]
-
-
-def run(template: str, params: Dict[str, Any]) -> str:
-    schema = '(' + template + ').Input'
-    for input_type in (list(map(lambda x: list(map(str.strip, x.split(':'))), map(
-            str.strip, pread(['dhall'], schema).strip()[1:-1].split(','))))):
-        input_name = input_type[0]
-        if input_name in params:
-            continue
-        if input_name == 'ssh_key':
-            params[input_name] = generate_ssh_key()
-            continue
-    return pread(['json-to-dhall', schema], json.dumps(params))
+def run(schema: str, json_input: str) -> str:
+    return pread(['json-to-dhall', '--plain', schema], json_input)
 
 
 def ansible_main():
     module = AnsibleModule(
         argument_spec=dict(
-            template=dict(required=True, type='str'),
-            name=dict(required=True, type='str'),
-            params=dict(type='dict'),
+            schema=dict(required=True, type='str'),
+            json=dict(required=True, type='str'),
         )
     )
-
     p = module.params
-    params = p.get('params', {})
-    if "name" not in params:
-        params["name"] = p['name']
     try:
-        module.exit_json(changed=True, result=run(p['template'], params))
+        module.exit_json(changed=True, result=run(p['schema'], p['json']))
     except Exception as e:
         module.fail_json(msg="Dhall expression failed:" + str(e))
 
 
 def cli_main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('template')
-    parser.add_argument('name')
-    parser.add_argument('--params')
+    parser.add_argument('schema')
+    parser.add_argument('json')
     args = parser.parse_args()
-
-    params = json.loads(args.params) if args.params else {}
-    if "name" not in params:
-        params["name"] = args.name
-    print(run(args.template, params))
+    print(run(args.schema, args.json))
 
 
 if __name__ == '__main__':
