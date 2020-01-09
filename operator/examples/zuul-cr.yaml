@@ -1,0 +1,28 @@
+apiVersion: softwarefactory-project.io/v1alpha1
+kind: Zuul
+metadata:
+  name: zuul
+spec:
+  executor:
+    ssh_key:
+      secretName: executor-ssh-key
+  merger: {}
+  web: {}
+  scheduler:
+    config:
+      secretName: zuul-yaml-conf
+  connections:
+    gerrits:
+      - baseurl: https://review.rdoproject.org/r/
+        name: review.rdoproject.org
+        sshkey:
+          secretName: rdo-key
+        user: zuul
+    githubs:
+      - app_id: 42
+        app_key:
+          secretName: github
+        name: github.com
+    gits:
+      - baseurl: https://opendev.org
+        name: opendev.org
