@@ -91,7 +91,7 @@ items:
                 - mountPath: /etc/zuul
                   name: zuul
                 - mountPath: /etc/zuul-executor
-                  name: executor-ssh-key-secret-name
+                  name: executor-ssh-key
           initContainers:
             - args:
                 - sh
@@ -109,12 +109,12 @@ items:
                 - mountPath: /etc/zuul
                   name: zuul
                 - mountPath: /etc/zuul-executor
-                  name: executor-ssh-key-secret-name
+                  name: executor-ssh-key
           volumes:
             - name: zuul
               secret:
                 secretName: zuul-secret-zuul
-            - name: executor-ssh-key-secret-name
+            - name: executor-ssh-key
               secret:
-                secretName: executor-ssh-key-secret-name
+                secretName: executor-ssh-key
 kind: List

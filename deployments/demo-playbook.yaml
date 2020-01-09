@@ -45,7 +45,7 @@
           [connection "local-git"]
           driver=git
           baseurl=git://config/
-        dest: "{{ _volume_zuul.stdout }}/zuul.conf"
+        dest: "{{ _volume_zuul.stdout_lines[-1] }}/zuul.conf"
         serole: object_r
         setype: container_file_t
         seuser: system_u
@@ -57,13 +57,13 @@
                 local-git:
                   config-projects:
                     - config
-        dest: "{{ _volume_zuul.stdout }}/main.yaml"
+        dest: "{{ _volume_zuul.stdout_lines[-1] }}/main.yaml"
         serole: object_r
         setype: container_file_t
         seuser: system_u
     - copy:
         content: SECRET_SSH_KEY
-        dest: "{{ _volume_zuul.stdout }}/id_rsa"
+        dest: "{{ _volume_zuul.stdout_lines[-1] }}/id_rsa"
         serole: object_r
         setype: container_file_t
         seuser: system_u
@@ -103,7 +103,7 @@
               periodic:
                 jobs:
                   - test-job
-        dest: "{{ _volume_config.stdout }}/zuul.yaml"
+        dest: "{{ _volume_config.stdout_lines[-1] }}/zuul.yaml"
         serole: object_r
         setype: container_file_t
         seuser: system_u
@@ -113,7 +113,7 @@
             tasks:
               - debug: msg='Demo job is running'
               - pause: seconds=30
-        dest: "{{ _volume_config.stdout }}/base.yaml"
+        dest: "{{ _volume_config.stdout_lines[-1] }}/base.yaml"
         serole: object_r
         setype: container_file_t
         seuser: system_u
@@ -138,13 +138,13 @@
                   - name: pod-centos
                     image: quay.io/software-factory/pod-centos-7
                     python-path: /bin/python2
-        dest: "{{ _volume_nodepool.stdout }}/nodepool.yaml"
+        dest: "{{ _volume_nodepool.stdout_lines[-1] }}/nodepool.yaml"
         serole: object_r
         setype: container_file_t
         seuser: system_u
     - copy:
         content: SECRET_KUBECONFIG
-        dest: "{{ _volume_nodepool.stdout }}/kube.config"
+        dest: "{{ _volume_nodepool.stdout_lines[-1] }}/kube.config"
         serole: object_r
         setype: container_file_t
         seuser: system_u

@@ -1,4 +1,3 @@
-|
 #!/bin/bash -ex
 podman pod create --name demo01      --publish 9000:9000
 # Volume zuul
@@ -31,6 +30,7 @@ dburi=postgresql://zuul:secret@db/zuul
 [connection "local-git"]
 driver=git
 baseurl=git://config/
+
 EOF
 mkdir -p $VOLPATH/$(dirname main.yaml)
 cat << EOF > $VOLPATH/main.yaml
@@ -40,10 +40,12 @@ cat << EOF > $VOLPATH/main.yaml
       local-git:
         config-projects:
           - config
+
 EOF
 mkdir -p $VOLPATH/$(dirname id_rsa)
 cat << EOF > $VOLPATH/id_rsa
-SECRET_SSH_KEYEOF
+SECRET_SSH_KEY
+EOF
 
 # Volume config
 podman volume create demo01-config || true
@@ -84,6 +86,7 @@ cat << EOF > $VOLPATH/zuul.yaml
     periodic:
       jobs:
         - test-job
+
 EOF
 mkdir -p $VOLPATH/$(dirname base.yaml)
 cat << EOF > $VOLPATH/base.yaml
@@ -91,6 +94,7 @@ cat << EOF > $VOLPATH/base.yaml
   tasks:
     - debug: msg='Demo job is running'
     - pause: seconds=30
+
 EOF
 
 # Volume nodepool
@@ -117,10 +121,12 @@ providers:
         - name: pod-centos
           image: quay.io/software-factory/pod-centos-7
           python-path: /bin/python2
+
 EOF
 mkdir -p $VOLPATH/$(dirname kube.config)
 cat << EOF > $VOLPATH/kube.config
-SECRET_KUBECONFIGEOF
+SECRET_KUBECONFIG
+EOF
 
 podman run --pod demo01 --name demo01-dns --detach --add-host=config:127.0.0.1 --add-host=zk:127.0.0.1 --add-host=db:127.0.0.1 --add-host=scheduler:127.0.0.1 --add-host=executor:127.0.0.1 --add-host=web:127.0.0.1 --add-host=launcher:127.0.0.1 registry.fedoraproject.org/fedora:31 sleep infinity
 podman run --pod demo01 --name demo01-config --detach --volume=demo01-config:/config --rm quay.io/software-factory/zuul:3.4 "sh" "-c" "mkdir -p /git/config; cp /config/* /git/config;cd /git/config ;git config --global user.email zuul@localhost ;git config --global user.name Zuul ;git init . ;git add -A . ;git commit -m init ;git daemon --export-all --reuseaddr --verbose --base-path=/git/ /git/"

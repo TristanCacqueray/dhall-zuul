@@ -33,11 +33,11 @@
           [executor]
           private_key_file=/etc/zuul-executor/id_rsa
           
-        dest: "{{ _volume_zuul.stdout }}/zuul.conf"
+        dest: "{{ _volume_zuul.stdout_lines[-1] }}/zuul.conf"
         serole: object_r
         setype: container_file_t
         seuser: system_u
-    - command: "podman create --name zuul-executor --privileged --volume=zuul-zuul:/etc/zuul --volume=executor-ssh-key-secret-name:/etc/zuul-executor --network=host quay.io/software-factory/zuul-executor:3.4 \"zuul-executor\" \"-d\""
+    - command: "podman create --name zuul-executor --privileged --volume=zuul-zuul:/etc/zuul --volume=executor-ssh-key:/etc/zuul-executor --network=host quay.io/software-factory/zuul-executor:3.4 \"zuul-executor\" \"-d\""
       name: "Create container"
     - file:
         path: "{{ ansible_user_dir }}/.config/systemd/user"

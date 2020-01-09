@@ -8,40 +8,40 @@ build-local:
 # Generate demo deployments
 
 playbook = @dhall-to-yaml --omit-empty --explain --output $(1) <<< '(env:DHALL_OPERATOR).Deploy.Ansible.Localhost ($(2))'
-podman = @dhall-to-yaml --omit-empty --explain --output $(1) <<< '(env:DHALL_OPERATOR).Deploy.Podman.RenderCommands ($(2))'
+podman = @dhall text --explain > $(1) <<< '(env:DHALL_OPERATOR).Deploy.Podman.RenderCommands ($(2))'
 k8s = @dhall-to-yaml --omit-empty --explain --output $(1) <<< '(env:DHALL_OPERATOR).Deploy.Kubernetes ($(2))'
 
 
 ZUUL_DEMO = ./operator/application/Demo.dhall "SECRET_SSH_KEY" (Some "SECRET_KUBECONFIG") "demo01"
 
-deployments/demo-playbook.yaml: operator/application/Demo.dhall
+demo-playbook:
 	$(call playbook,deployments/demo-playbook.yaml,$(ZUUL_DEMO))
 
-deployments/demo-podman.sh: operator/application/Demo.dhall
+demo-podman:
 	$(call podman,deployments/demo-podman.sh,$(ZUUL_DEMO))
 
-deployments/demo-k8s.yaml: operator/application/Demo.dhall
+demo-k8s:
 	$(call k8s,deployments/demo-k8s.yaml,$(ZUUL_DEMO))
 
-demo-app: deployments/demo-playbook.yaml deployments/demo-podman.sh deployments/demo-k8s.yaml
+demo-app: demo-playbook demo-podman demo-k8s
 
 
 ZUUL_CR = (./operator/application/Zuul.dhall).Application ./deployments/cr-input.dhall
 
-deployments/cr-playbook.yaml: operator/application/Zuul.dhall
+cr-playbook:
 	$(call playbook,deployments/cr-playbook.yaml,$(ZUUL_CR))
 
-deployments/cr-podman.sh: operator/application/Zuul.dhall
+cr-podman:
 	$(call podman,deployments/cr-podman.sh,$(ZUUL_CR))
 
-deployments/cr-k8s.yaml: operator/application/Zuul.dhall
+cr-k8s:
 	$(call k8s,deployments/cr-k8s.yaml,$(ZUUL_CR))
 
-cr-app: deployments/cr-playbook.yaml deployments/cr-podman.sh deployments/cr-k8s.yaml
+cr-app: cr-playbook cr-podman cr-k8s
 
 
 deployments: demo-app cr-app
-
+	@sh -c "chmod +x deployments/*.sh"
 
 
 doc:
