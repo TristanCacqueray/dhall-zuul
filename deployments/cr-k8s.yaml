@@ -9,23 +9,26 @@ items:
         [gearman]
         server=scheduler
         
+        [gearman_server]
+        start=true
+        
         [zookeeper]
         hosts=zk
         
         [merger]
-        git_user_email=zuul@zuul
-        
-        [gearman_server]
-        start=true
+        git_user_email=zuul@localhost
+        git_user_name=Zuul
         
         [scheduler]
-        tenant_config=/etc/zuul/main.yaml
+        tenant_config=/etc/zuul-scheduler/main.yaml
         
         [web]
         listen_address=0.0.0.0
+        root=http://web:9000
         
         [executor]
         private_key_file=/etc/zuul-executor/id_rsa
+        manage_ansible=false
         
   - apiVersion: v1
     kind: Service
@@ -48,6 +51,105 @@ items:
         app.kubernetes.io/name: zuul
         app.kubernetes.io/part-of: zuul
       type: ClusterIP
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        app.kubernetes.io/component: web
+        app.kubernetes.io/instance: zuul
+        app.kubernetes.io/name: zuul
+        app.kubernetes.io/part-of: zuul
+      name: web
+    spec:
+      ports:
+        - name: api
+          port: 9000
+          protocol: TCP
+          targetPort: api
+      selector:
+        app.kubernetes.io/component: web
+        app.kubernetes.io/instance: zuul
+        app.kubernetes.io/name: zuul
+        app.kubernetes.io/part-of: zuul
+      type: ClusterIP
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        app.kubernetes.io/component: scheduler
+        app.kubernetes.io/instance: zuul
+        app.kubernetes.io/name: zuul
+        app.kubernetes.io/part-of: zuul
+      name: scheduler
+    spec:
+      ports:
+        - name: gearman
+          port: 4730
+          protocol: TCP
+          targetPort: gearman
+      selector:
+        app.kubernetes.io/component: scheduler
+        app.kubernetes.io/instance: zuul
+        app.kubernetes.io/name: zuul
+        app.kubernetes.io/part-of: zuul
+      type: ClusterIP
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        app.kubernetes.io/component: web
+        app.kubernetes.io/instance: zuul
+        app.kubernetes.io/name: zuul
+        app.kubernetes.io/part-of: zuul
+      name: zuul-web
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app.kubernetes.io/component: web
+          app.kubernetes.io/instance: zuul
+          app.kubernetes.io/name: zuul
+          app.kubernetes.io/part-of: zuul
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/component: web
+            app.kubernetes.io/instance: zuul
+            app.kubernetes.io/name: zuul
+            app.kubernetes.io/part-of: zuul
+          name: web
+        spec:
+          containers:
+            - args:
+                - zuul-web
+                - "-d"
+              image: quay.io/software-factory/zuul-web:3.4
+              imagePullPolicy: IfNotPresent
+              name: web
+              ports:
+                - containerPort: 9000
+                  name: api
+              volumeMounts:
+                - mountPath: /etc/zuul
+                  name: zuul
+          initContainers:
+            - args:
+                - sh
+                - "-c"
+                - "until python -c 'import socket, sys; socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((sys.argv[1], 4730))' scheduler 2>/dev/null; do echo 'waiting for scheduler:4730'; sleep 1; done"
+              image: quay.io/software-factory/zuul:3.4
+              imagePullPolicy: IfNotPresent
+              name: web-init0
+              ports:
+                - containerPort: 9000
+                  name: api
+              volumeMounts:
+                - mountPath: /etc/zuul
+                  name: zuul
+          volumes:
+            - name: zuul
+              secret:
+                secretName: zuul-secret-zuul
   - apiVersion: apps/v1
     kind: StatefulSet
     metadata:
@@ -117,4 +219,81 @@ items:
             - name: executor-ssh-key
               secret:
                 secretName: executor-ssh-key
+  - apiVersion: apps/v1
+    kind: StatefulSet
+    metadata:
+      labels:
+        app.kubernetes.io/component: scheduler
+        app.kubernetes.io/instance: zuul
+        app.kubernetes.io/name: zuul
+        app.kubernetes.io/part-of: zuul
+      name: zuul-scheduler
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app.kubernetes.io/component: scheduler
+          app.kubernetes.io/instance: zuul
+          app.kubernetes.io/name: zuul
+          app.kubernetes.io/part-of: zuul
+      serviceName: scheduler
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/component: scheduler
+            app.kubernetes.io/instance: zuul
+            app.kubernetes.io/name: zuul
+            app.kubernetes.io/part-of: zuul
+          name: scheduler
+        spec:
+          containers:
+            - args:
+                - zuul-scheduler
+                - "-d"
+              image: quay.io/software-factory/zuul-scheduler:3.4
+              imagePullPolicy: IfNotPresent
+              name: scheduler
+              ports:
+                - containerPort: 4730
+                  name: gearman
+              volumeMounts:
+                - mountPath: /etc/zuul
+                  name: zuul
+                - mountPath: /etc/zuul-scheduler
+                  name: zuul-yaml-conf
+          volumes:
+            - name: zuul
+              secret:
+                secretName: zuul-secret-zuul
+            - name: zuul-yaml-conf
+              secret:
+                secretName: zuul-yaml-conf
+      volumeClaimTemplates:
+        - apiVersion: v1
+          kind: PersistentVolumeClaim
+          metadata:
+            name: zuul-scheduler
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 5Gi
+  - apiVersion: networking.k8s.io/v1beta1
+    kind: Ingress
+    metadata:
+      labels:
+        app.kubernetes.io/component: web
+        app.kubernetes.io/instance: zuul
+        app.kubernetes.io/name: zuul
+        app.kubernetes.io/part-of: zuul
+      name: zuul-web
+    spec:
+      rules:
+        - http:
+            paths:
+              - backend:
+                  serviceName: web
+                  servicePort: 9000
+                path: /
 kind: List

@@ -23,3 +23,13 @@ items:
           QQDdqZgN/s2zo+FPm3cEFrUMxn5l9IBSSrRwy/BFC8wMDvjAZHW6HycCQ97l41HNudNX3S
           a56gV9hNojMrdOHsAzAAAAFmZlZG9yYUBmZWRvcmEucmRvY2xvdWQBAgME
           -----END OPENSSH PRIVATE KEY-----
+
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: zuul-yaml-conf
+    stringData:
+      main.yaml: |
+        - tenant:
+            name: local
+            sources: []

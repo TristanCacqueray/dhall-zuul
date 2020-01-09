@@ -3,7 +3,7 @@
   tasks:
     - become: true
       lineinfile:
-        line: "127.0.0.2 executor"
+        line: "127.0.0.2 executor web scheduler"
         path: /etc/hosts
         regexp: "^127.0.0.2 .*"
     - changed_when: _volume_zuul.stderr
@@ -15,23 +15,26 @@
           [gearman]
           server=scheduler
           
+          [gearman_server]
+          start=true
+          
           [zookeeper]
           hosts=zk
           
           [merger]
-          git_user_email=zuul@zuul
-          
-          [gearman_server]
-          start=true
+          git_user_email=zuul@localhost
+          git_user_name=Zuul
           
           [scheduler]
-          tenant_config=/etc/zuul/main.yaml
+          tenant_config=/etc/zuul-scheduler/main.yaml
           
           [web]
           listen_address=0.0.0.0
+          root=http://web:9000
           
           [executor]
           private_key_file=/etc/zuul-executor/id_rsa
+          manage_ansible=false
           
         dest: "{{ _volume_zuul.stdout_lines[-1] }}/zuul.conf"
         serole: object_r
@@ -47,5 +50,29 @@
     - systemd:
         daemon_reload: true
         name: zuul-executor
+        scope: user
+        state: started
+    - command: "podman create --name zuul-web --volume=zuul-zuul:/etc/zuul --network=host quay.io/software-factory/zuul-web:3.4 \"zuul-web\" \"-d\""
+      name: "Create container"
+    - file:
+        path: "{{ ansible_user_dir }}/.config/systemd/user"
+        state: directory
+    - name: "Create systemd unit"
+      shell: "podman generate systemd --name zuul-web > {{ ansible_user_dir }}/.config/systemd/user/zuul-web.service"
+    - systemd:
+        daemon_reload: true
+        name: zuul-web
+        scope: user
+        state: started
+    - command: "podman create --name zuul-scheduler --volume=zuul-zuul:/etc/zuul --volume=zuul-yaml-conf:/etc/zuul-scheduler --network=host quay.io/software-factory/zuul-scheduler:3.4 \"zuul-scheduler\" \"-d\""
+      name: "Create container"
+    - file:
+        path: "{{ ansible_user_dir }}/.config/systemd/user"
+        state: directory
+    - name: "Create systemd unit"
+      shell: "podman generate systemd --name zuul-scheduler > {{ ansible_user_dir }}/.config/systemd/user/zuul-scheduler.service"
+    - systemd:
+        daemon_reload: true
+        name: zuul-scheduler
         scope: user
         state: started
