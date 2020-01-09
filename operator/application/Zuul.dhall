@@ -18,6 +18,24 @@ let Web = { count : Optional Natural, status_url : Optional Text }
 
 let Scheduler = { count : Optional Natural, config : UserSecret }
 
+let Gerrit =
+      { name : Text
+      , server : Optional Text
+      , user : Text
+      , baseurl : Text
+      , sshkey : UserSecret
+      }
+
+let GitHub = { name : Text, app_id : Natural, app_key : UserSecret }
+
+let Pagure = { name : Text }
+
+let Mqtt = { name : Text }
+
+let GitLab = { name : Text }
+
+let Git = { name : Text, baseurl : Text }
+
 let Input
     : Type
     = { name : Text
@@ -27,6 +45,14 @@ let Input
       , scheduler : Scheduler
       , database : Optional UserSecret
       , zookeeper : Optional UserSecret
+      , connections :
+          { gerrits : Optional (List Gerrit)
+          , githubs : Optional (List GitHub)
+          , gitlabs : Optional (List GitLab)
+          , pagures : Optional (List Pagure)
+          , mqtts : Optional (List Mqtt)
+          , gits : Optional (List Git)
+          }
       }
 
 let Prelude =
@@ -137,36 +163,71 @@ in  { Input = Input
                     (\(some : UserSecret) -> NoService)
                     [ Helpers.Services.ZooKeeper ]
 
+            let gerrits-conf =
+                  Helpers.mkConns
+                    Gerrit
+                    input.connections.gerrits
+                    (     \(gerrit : Gerrit)
+                      ->  let key = DefaultText gerrit.sshkey.key "id_rsa"
+
+                          let server = DefaultText gerrit.server gerrit.name
+
+                          in  ''
+                              [connection ${gerrit.name}]
+                              driver=gerrit
+                              server=${server}
+                              sshkey=/etc/zuul-gerrit-${gerrit.name}/${key}
+                              user=${gerrit.user}
+                              baseurl=${gerrit.baseurl}
+                              ''
+                    )
+
+            let gits-conf =
+                  Helpers.mkConns
+                    Git
+                    input.connections.gits
+                    (     \(git : Git)
+                      ->  ''
+                          [connection ${git.name}]
+                          driver=git
+                          baseurl=${git.baseurl}
+
+                          ''
+                    )
+
             let zuul-conf =
-                  ''
-                  [gearman]
-                  server=scheduler
+                      ''
+                      [gearman]
+                      server=scheduler
 
-                  [gearman_server]
-                  start=true
+                      [gearman_server]
+                      start=true
 
-                  [zookeeper]
-                  hosts=${zk-hosts}
+                      [zookeeper]
+                      hosts=${zk-hosts}
 
-                  [merger]
-                  git_user_email=${merger-email}
-                  git_user_name=${merger-user}
+                      [merger]
+                      git_user_email=${merger-email}
+                      git_user_name=${merger-user}
 
-                  [scheduler]
-                  tenant_config=/etc/zuul-scheduler/${sched-config}
+                      [scheduler]
+                      tenant_config=/etc/zuul-scheduler/${sched-config}
 
-                  [web]
-                  listen_address=0.0.0.0
-                  root=${web-url}
+                      [web]
+                      listen_address=0.0.0.0
+                      root=${web-url}
 
-                  [executor]
-                  private_key_file=/etc/zuul-executor/${executor-key-name}
-                  manage_ansible=false
+                      [executor]
+                      private_key_file=/etc/zuul-executor/${executor-key-name}
+                      manage_ansible=false
 
-                  [connection "sql"]
-                  driver=sql
-                  dburi=${db-uri}
-                  ''
+                      [connection "sql"]
+                      driver=sql
+                      dburi=${db-uri}
+
+                      ''
+                  ++  gits-conf
+                  ++  gerrits-conf
 
             in  Operator.Schemas.Application::{
                 , name = input.name
@@ -217,14 +278,25 @@ in  { Input = Input
                                 }
                               ]
 
+                        let gerrits-key =
+                              Helpers.mkConnVols
+                                Gerrit
+                                input.connections.gerrits
+                                (     \(gerrit : Gerrit)
+                                  ->  Operator.Schemas.Volume::{
+                                      , name = gerrit.sshkey.secretName
+                                      , dir = "/etc/zuul-gerrit-${gerrit.name}"
+                                      }
+                                )
+
                         in  merge
                               { _All = NoVolume
                               , Database = NoVolume
-                              , Scheduler = sched-config
+                              , Scheduler = sched-config # gerrits-key
                               , Launcher = NoVolume
-                              , Executor = executor-ssh-key
+                              , Executor = executor-ssh-key # gerrits-key
                               , Gateway = NoVolume
-                              , Worker = NoVolume
+                              , Worker = gerrits-key
                               , Config = NoVolume
                               , Other = NoVolume
                               }

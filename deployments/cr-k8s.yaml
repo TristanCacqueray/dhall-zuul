@@ -33,6 +33,17 @@ items:
         [connection "sql"]
         driver=sql
         dburi=postgresql://zuul:super-secret@db/zuul
+        
+        [connection opendev.org]
+        driver=git
+        baseurl=https://opendev.org
+        
+        [connection review.rdoproject.org]
+        driver=gerrit
+        servier=review.rdoproject.org
+        sshkey=/etc/zuul-gerrit-review.rdoproject.org/id_rsa
+        user=zuul
+        baseurl=https://review.rdoproject.org/r/
   - apiVersion: v1
     kind: Service
     metadata:
@@ -334,6 +345,8 @@ items:
                   name: zuul
                 - mountPath: /etc/zuul-executor
                   name: executor-ssh-key
+                - mountPath: /etc/zuul-gerrit-review.rdoproject.org
+                  name: rdo-key
           initContainers:
             - args:
                 - sh
@@ -352,6 +365,8 @@ items:
                   name: zuul
                 - mountPath: /etc/zuul-executor
                   name: executor-ssh-key
+                - mountPath: /etc/zuul-gerrit-review.rdoproject.org
+                  name: rdo-key
           volumes:
             - name: zuul
               secret:
@@ -359,6 +374,9 @@ items:
             - name: executor-ssh-key
               secret:
                 secretName: executor-ssh-key
+            - name: rdo-key
+              secret:
+                secretName: rdo-key
   - apiVersion: apps/v1
     kind: StatefulSet
     metadata:
@@ -401,6 +419,8 @@ items:
                   name: zuul
                 - mountPath: /etc/zuul-scheduler
                   name: zuul-yaml-conf
+                - mountPath: /etc/zuul-gerrit-review.rdoproject.org
+                  name: rdo-key
           volumes:
             - name: zuul
               secret:
@@ -408,6 +428,9 @@ items:
             - name: zuul-yaml-conf
               secret:
                 secretName: zuul-yaml-conf
+            - name: rdo-key
+              secret:
+                secretName: rdo-key
       volumeClaimTemplates:
         - apiVersion: v1
           kind: PersistentVolumeClaim

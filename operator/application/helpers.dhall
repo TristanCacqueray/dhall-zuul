@@ -1,3 +1,6 @@
+let Prelude =
+      https://prelude.dhall-lang.org/v12.0.0/package.dhall sha256:aea6817682359ae1939f3a15926b84ad5763c24a3740103202d2eaaea4d01f4c
+
 let Operator = ./Operator.dhall
 
 let Container = Operator.Schemas.Container
@@ -145,9 +148,37 @@ let waitFor =
                     ]
               }
 
+let NoVolume = [] : List Operator.Types.Volume
+
+let NoText = [] : List Text
+
+let newlineSep = Prelude.Text.concatSep "\n"
+
 in  { Services = Services
     , Images = { Base = zuul-base }
     , waitForDb = waitFor { host = "db", port = 5432 }
+    , mkConns =
+            \(type : Type)
+        ->  \(list : Optional (List type))
+        ->  \(f : type -> Text)
+        ->  newlineSep
+              ( Optional/fold
+                  (List type)
+                  list
+                  (List Text)
+                  (Prelude.List.map type Text f)
+                  NoText
+              )
+    , mkConnVols =
+            \(type : Type)
+        ->  \(list : Optional (List type))
+        ->  \(f : type -> Operator.Schemas.Volume.Type)
+        ->  Optional/fold
+              (List type)
+              list
+              (List Operator.Schemas.Volume.Type)
+              (Prelude.List.map type Operator.Schemas.Volume.Type f)
+              NoVolume
     , DefaultEnv =
             \(db-password : Text)
         ->  let db-env =
