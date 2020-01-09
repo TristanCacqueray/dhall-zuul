@@ -1,3 +1,3 @@
 name: "{{ meta.name | default('zuul') }}"
-zuul_app_path: "/opt/ansible/dhall/applications/Connection.dhall"
+zuul_app_path: "/opt/ansible/dhall/applications/Zuul.dhall"
 kubernetes_deploy_path: "/opt/ansible/dhall/deploy/Kubernetes.dhall"

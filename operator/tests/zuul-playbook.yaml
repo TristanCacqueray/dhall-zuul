@@ -3,6 +3,9 @@
   gather_facts: no
   vars:
     kubernetes_deploy_path: "~/dhall-operator/deploy/Kubernetes.dhall"
-    zuul_app_path: "~/dhall-zuul/operator/application/Connection.dhall"
+    zuul_app_path: "~/dhall-zuul/operator/application/Zuul.dhall"
+    executor:
+      ssh_key:
+        secretName: "my-key"
   roles:
     - zuul

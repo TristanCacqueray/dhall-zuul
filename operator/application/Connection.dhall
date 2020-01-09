@@ -93,9 +93,7 @@ in  { Input = Input
                                                 untrusted-projects:
                                         ''
                                     ++  Prelude.Text.concatSep
-                                          ''
-
-                                          ''
+                                          "\n"
                                           ( Prelude.List.map
                                               Text
                                               Text
@@ -104,9 +102,7 @@ in  { Input = Input
                                               )
                                               rest-project
                                           )
-                                    ++  ''
-
-                                        ''
+                                    ++  "\n"
                                 }
                               , { path = "id_rsa", content = input.ssh_key }
                               ]

@@ -1,12 +1,12 @@
-- name: Convert CustomResource spec to json
-  cr_to_json:
-    name: "{{ meta.name | default('zuul') }}"
-  register: _cr
-
 - name: Convert spec to template input
   json_to_dhall:
     schema: "({{ zuul_app_path }}).Input"
-    json: "{{ _cr.result | to_json }}"
+    json: "{{ spec | to_json }}"
+  vars:
+    spec:
+      name: "{{ meta.name | default('zuul') }}"
+      merger: "{{ merger | default({}) }}"
+      executor: "{{ executor | default({}) }}"
   register: _dhall
 
 - include_role:

@@ -1,0 +1,234 @@
+
+- hosts: localhost
+  tasks:
+    - become: true
+      lineinfile:
+        line: "127.0.0.2 config zk db scheduler executor web launcher"
+        path: /etc/hosts
+        regexp: "^127.0.0.2 .*"
+    - changed_when: _volume_zuul.stderr
+      name: "Get or create volume"
+      register: _volume_zuul
+      shell: "podman volume inspect demo01-zuul --format \"{{'{{'}}.Mountpoint{{'}}'}}\" || ( podman volume create demo01-zuul && podman volume inspect demo01-zuul --format \"{{'{{'}}.Mountpoint{{'}}'}}\" )"
+    - changed_when: _volume_config.stderr
+      name: "Get or create volume"
+      register: _volume_config
+      shell: "podman volume inspect demo01-config --format \"{{'{{'}}.Mountpoint{{'}}'}}\" || ( podman volume create demo01-config && podman volume inspect demo01-config --format \"{{'{{'}}.Mountpoint{{'}}'}}\" )"
+    - changed_when: _volume_nodepool.stderr
+      name: "Get or create volume"
+      register: _volume_nodepool
+      shell: "podman volume inspect demo01-nodepool --format \"{{'{{'}}.Mountpoint{{'}}'}}\" || ( podman volume create demo01-nodepool && podman volume inspect demo01-nodepool --format \"{{'{{'}}.Mountpoint{{'}}'}}\" )"
+    - copy:
+        content: |
+          [gearman]
+          server=scheduler
+          
+          [gearman_server]
+          start=true
+          
+          [zookeeper]
+          hosts=zk
+          
+          [scheduler]
+          tenant_config=/etc/zuul/main.yaml
+          
+          [web]
+          listen_address=0.0.0.0
+          
+          [executor]
+          private_key_file=/etc/zuul/id_rsa
+          
+          [connection "sql"]
+          driver=sql
+          dburi=postgresql://zuul:secret@db/zuul
+          
+          [connection "local-git"]
+          driver=git
+          baseurl=git://config/
+        dest: "{{ _volume_zuul.stdout }}/zuul.conf"
+        serole: object_r
+        setype: container_file_t
+        seuser: system_u
+    - copy:
+        content: |
+          - tenant:
+              name: local
+              source:
+                local-git:
+                  config-projects:
+                    - config
+        dest: "{{ _volume_zuul.stdout }}/main.yaml"
+        serole: object_r
+        setype: container_file_t
+        seuser: system_u
+    - copy:
+        content: SECRET_SSH_KEY
+        dest: "{{ _volume_zuul.stdout }}/id_rsa"
+        serole: object_r
+        setype: container_file_t
+        seuser: system_u
+    - copy:
+        content: |
+          - pipeline:
+              name: periodic
+              manager: independent
+              trigger:
+                timer:
+                  - time: '* * * * * *'
+              success:
+                sql:
+              failure:
+                sql:
+          
+          - nodeset:
+              name: localhost
+              nodes: []
+          
+          - nodeset:
+              name: centos-pod
+              nodes:
+                - name: centos-pod
+                  label: pod-centos
+          
+          - job:
+              name: base
+              parent: null
+              run: base.yaml
+              nodeset: centos-pod
+          
+          - job:
+              name: test-job
+          
+          - project:
+              periodic:
+                jobs:
+                  - test-job
+        dest: "{{ _volume_config.stdout }}/zuul.yaml"
+        serole: object_r
+        setype: container_file_t
+        seuser: system_u
+    - copy:
+        content: |
+          - hosts: all
+            tasks:
+              - debug: msg='Demo job is running'
+              - pause: seconds=30
+        dest: "{{ _volume_config.stdout }}/base.yaml"
+        serole: object_r
+        setype: container_file_t
+        seuser: system_u
+    - copy:
+        content: |
+          zookeeper-servers:
+            - host: zk
+              port: 2181
+          webapp:
+            port: 5000
+          
+          labels:
+            - name: pod-centos
+          providers:
+            - name: kube-cluster
+              driver: openshiftpods
+              context: local
+              max-pods: 4
+              pools:
+              - name: default
+                labels:
+                  - name: pod-centos
+                    image: quay.io/software-factory/pod-centos-7
+                    python-path: /bin/python2
+        dest: "{{ _volume_nodepool.stdout }}/nodepool.yaml"
+        serole: object_r
+        setype: container_file_t
+        seuser: system_u
+    - copy:
+        content: SECRET_KUBECONFIG
+        dest: "{{ _volume_nodepool.stdout }}/kube.config"
+        serole: object_r
+        setype: container_file_t
+        seuser: system_u
+    - command: "podman create --name demo01-config --volume=demo01-config:/config --network=host quay.io/software-factory/zuul:3.4 \"sh\" \"-c\" \"mkdir -p /git/config; cp /config/* /git/config;cd /git/config ;git config --global user.email zuul@localhost ;git config --global user.name Zuul ;git init . ;git add -A . ;git commit -m init ;git daemon --export-all --reuseaddr --verbose --base-path=/git/ /git/\""
+      name: "Create container"
+    - file:
+        path: "{{ ansible_user_dir }}/.config/systemd/user"
+        state: directory
+    - name: "Create systemd unit"
+      shell: "podman generate systemd --name demo01-config > {{ ansible_user_dir }}/.config/systemd/user/demo01-config.service"
+    - systemd:
+        daemon_reload: true
+        name: demo01-config
+        scope: user
+        state: started
+    - command: "podman create --name demo01-zk --network=host quay.io/software-factory/zookeeper:3.4"
+      name: "Create container"
+    - file:
+        path: "{{ ansible_user_dir }}/.config/systemd/user"
+        state: directory
+    - name: "Create systemd unit"
+      shell: "podman generate systemd --name demo01-zk > {{ ansible_user_dir }}/.config/systemd/user/demo01-zk.service"
+    - systemd:
+        daemon_reload: true
+        name: demo01-zk
+        scope: user
+        state: started
+    - command: "podman create --name demo01-db --env=POSTGRES_PASSWORD='secret' --env=POSTGRES_USER='zuul' --network=host docker.io/library/postgres:12.1"
+      name: "Create container"
+    - file:
+        path: "{{ ansible_user_dir }}/.config/systemd/user"
+        state: directory
+    - name: "Create systemd unit"
+      shell: "podman generate systemd --name demo01-db > {{ ansible_user_dir }}/.config/systemd/user/demo01-db.service"
+    - systemd:
+        daemon_reload: true
+        name: demo01-db
+        scope: user
+        state: started
+    - command: "podman create --name demo01-scheduler --volume=demo01-zuul:/etc/zuul --network=host quay.io/software-factory/zuul-scheduler:3.4 \"zuul-scheduler\" \"-d\""
+      name: "Create container"
+    - file:
+        path: "{{ ansible_user_dir }}/.config/systemd/user"
+        state: directory
+    - name: "Create systemd unit"
+      shell: "podman generate systemd --name demo01-scheduler > {{ ansible_user_dir }}/.config/systemd/user/demo01-scheduler.service"
+    - systemd:
+        daemon_reload: true
+        name: demo01-scheduler
+        scope: user
+        state: started
+    - command: "podman create --name demo01-executor --privileged --volume=demo01-zuul:/etc/zuul --network=host quay.io/software-factory/zuul-executor:3.4 \"zuul-executor\" \"-d\""
+      name: "Create container"
+    - file:
+        path: "{{ ansible_user_dir }}/.config/systemd/user"
+        state: directory
+    - name: "Create systemd unit"
+      shell: "podman generate systemd --name demo01-executor > {{ ansible_user_dir }}/.config/systemd/user/demo01-executor.service"
+    - systemd:
+        daemon_reload: true
+        name: demo01-executor
+        scope: user
+        state: started
+    - command: "podman create --name demo01-web --volume=demo01-zuul:/etc/zuul --network=host quay.io/software-factory/zuul-web:3.4 \"zuul-web\" \"-d\""
+      name: "Create container"
+    - file:
+        path: "{{ ansible_user_dir }}/.config/systemd/user"
+        state: directory
+    - name: "Create systemd unit"
+      shell: "podman generate systemd --name demo01-web > {{ ansible_user_dir }}/.config/systemd/user/demo01-web.service"
+    - systemd:
+        daemon_reload: true
+        name: demo01-web
+        scope: user
+        state: started
+    - command: "podman create --name demo01-launcher --volume=demo01-nodepool:/etc/nodepool --env=KUBECONFIG='/etc/nodepool/kube.config' --env=OS_CLIENT_CONFIG_FILE='/etc/nodepool/clouds.yaml' --network=host quay.io/software-factory/nodepool-launcher:3.4 \"nodepool-launcher\" \"-d\""
+      name: "Create container"
+    - file:
+        path: "{{ ansible_user_dir }}/.config/systemd/user"
+        state: directory
+    - name: "Create systemd unit"
+      shell: "podman generate systemd --name demo01-launcher > {{ ansible_user_dir }}/.config/systemd/user/demo01-launcher.service"
+    - systemd:
+        daemon_reload: true
+        name: demo01-launcher
+        scope: user
+        state: started

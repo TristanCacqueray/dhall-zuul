@@ -1,0 +1,120 @@
+apiVersion: v1
+items:
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: zuul-secret-zuul
+    stringData:
+      zuul.conf: |
+        [gearman]
+        server=scheduler
+        
+        [zookeeper]
+        hosts=zk
+        
+        [merger]
+        git_user_email=zuul@zuul
+        
+        [gearman_server]
+        start=true
+        
+        [scheduler]
+        tenant_config=/etc/zuul/main.yaml
+        
+        [web]
+        listen_address=0.0.0.0
+        
+        [executor]
+        private_key_file=/etc/zuul-executor/id_rsa
+        
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        app.kubernetes.io/component: executor
+        app.kubernetes.io/instance: zuul
+        app.kubernetes.io/name: zuul
+        app.kubernetes.io/part-of: zuul
+      name: executor
+    spec:
+      ports:
+        - name: finger
+          port: 7900
+          protocol: TCP
+          targetPort: finger
+      selector:
+        app.kubernetes.io/component: executor
+        app.kubernetes.io/instance: zuul
+        app.kubernetes.io/name: zuul
+        app.kubernetes.io/part-of: zuul
+      type: ClusterIP
+  - apiVersion: apps/v1
+    kind: StatefulSet
+    metadata:
+      labels:
+        app.kubernetes.io/component: executor
+        app.kubernetes.io/instance: zuul
+        app.kubernetes.io/name: zuul
+        app.kubernetes.io/part-of: zuul
+      name: zuul-executor
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app.kubernetes.io/component: executor
+          app.kubernetes.io/instance: zuul
+          app.kubernetes.io/name: zuul
+          app.kubernetes.io/part-of: zuul
+      serviceName: executor
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/component: executor
+            app.kubernetes.io/instance: zuul
+            app.kubernetes.io/name: zuul
+            app.kubernetes.io/part-of: zuul
+          name: executor
+        spec:
+          containers:
+            - args:
+                - zuul-executor
+                - "-d"
+              image: quay.io/software-factory/zuul-executor:3.4
+              imagePullPolicy: IfNotPresent
+              name: executor
+              ports:
+                - containerPort: 7900
+                  name: finger
+              securityContext:
+                privileged: true
+              volumeMounts:
+                - mountPath: /etc/zuul
+                  name: zuul
+                - mountPath: /etc/zuul-executor
+                  name: executor-ssh-key-secret-name
+          initContainers:
+            - args:
+                - sh
+                - "-c"
+                - "until python -c 'import socket, sys; socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((sys.argv[1], 4730))' scheduler 2>/dev/null; do echo 'waiting for scheduler:4730'; sleep 1; done"
+              image: quay.io/software-factory/zuul:3.4
+              imagePullPolicy: IfNotPresent
+              name: executor-init0
+              ports:
+                - containerPort: 7900
+                  name: finger
+              securityContext:
+                privileged: true
+              volumeMounts:
+                - mountPath: /etc/zuul
+                  name: zuul
+                - mountPath: /etc/zuul-executor
+                  name: executor-ssh-key-secret-name
+          volumes:
+            - name: zuul
+              secret:
+                secretName: zuul-secret-zuul
+            - name: executor-ssh-key-secret-name
+              secret:
+                secretName: executor-ssh-key-secret-name
+kind: List

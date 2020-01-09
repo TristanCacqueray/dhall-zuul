@@ -1,0 +1,628 @@
+apiVersion: v1
+items:
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: demo01-secret-zuul
+    stringData:
+      id_rsa: SECRET_SSH_KEY
+      main.yaml: |
+        - tenant:
+            name: local
+            source:
+              local-git:
+                config-projects:
+                  - config
+      zuul.conf: |
+        [gearman]
+        server=scheduler
+        
+        [gearman_server]
+        start=true
+        
+        [zookeeper]
+        hosts=zk
+        
+        [scheduler]
+        tenant_config=/etc/zuul/main.yaml
+        
+        [web]
+        listen_address=0.0.0.0
+        
+        [executor]
+        private_key_file=/etc/zuul/id_rsa
+        
+        [connection "sql"]
+        driver=sql
+        dburi=postgresql://zuul:secret@db/zuul
+        
+        [connection "local-git"]
+        driver=git
+        baseurl=git://config/
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: demo01-secret-config
+    stringData:
+      base.yaml: |
+        - hosts: all
+          tasks:
+            - debug: msg='Demo job is running'
+            - pause: seconds=30
+      zuul.yaml: |
+        - pipeline:
+            name: periodic
+            manager: independent
+            trigger:
+              timer:
+                - time: '* * * * * *'
+            success:
+              sql:
+            failure:
+              sql:
+        
+        - nodeset:
+            name: localhost
+            nodes: []
+        
+        - nodeset:
+            name: centos-pod
+            nodes:
+              - name: centos-pod
+                label: pod-centos
+        
+        - job:
+            name: base
+            parent: null
+            run: base.yaml
+            nodeset: centos-pod
+        
+        - job:
+            name: test-job
+        
+        - project:
+            periodic:
+              jobs:
+                - test-job
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: demo01-secret-nodepool
+    stringData:
+      kube.config: SECRET_KUBECONFIG
+      nodepool.yaml: |
+        zookeeper-servers:
+          - host: zk
+            port: 2181
+        webapp:
+          port: 5000
+        
+        labels:
+          - name: pod-centos
+        providers:
+          - name: kube-cluster
+            driver: openshiftpods
+            context: local
+            max-pods: 4
+            pools:
+            - name: default
+              labels:
+                - name: pod-centos
+                  image: quay.io/software-factory/pod-centos-7
+                  python-path: /bin/python2
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        app.kubernetes.io/component: config
+        app.kubernetes.io/instance: demo01
+        app.kubernetes.io/name: demo01
+        app.kubernetes.io/part-of: zuul
+      name: config
+    spec:
+      ports:
+        - name: git
+          port: 9418
+          protocol: TCP
+          targetPort: git
+      selector:
+        app.kubernetes.io/component: config
+        app.kubernetes.io/instance: demo01
+        app.kubernetes.io/name: demo01
+        app.kubernetes.io/part-of: zuul
+      type: ClusterIP
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        app.kubernetes.io/component: zk
+        app.kubernetes.io/instance: demo01
+        app.kubernetes.io/name: demo01
+        app.kubernetes.io/part-of: zuul
+      name: zk
+    spec:
+      ports:
+        - name: zk
+          port: 2181
+          protocol: TCP
+          targetPort: zk
+      selector:
+        app.kubernetes.io/component: zk
+        app.kubernetes.io/instance: demo01
+        app.kubernetes.io/name: demo01
+        app.kubernetes.io/part-of: zuul
+      type: ClusterIP
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        app.kubernetes.io/component: db
+        app.kubernetes.io/instance: demo01
+        app.kubernetes.io/name: demo01
+        app.kubernetes.io/part-of: zuul
+      name: db
+    spec:
+      ports:
+        - name: pg
+          port: 5432
+          protocol: TCP
+          targetPort: pg
+      selector:
+        app.kubernetes.io/component: db
+        app.kubernetes.io/instance: demo01
+        app.kubernetes.io/name: demo01
+        app.kubernetes.io/part-of: zuul
+      type: ClusterIP
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        app.kubernetes.io/component: scheduler
+        app.kubernetes.io/instance: demo01
+        app.kubernetes.io/name: demo01
+        app.kubernetes.io/part-of: zuul
+      name: scheduler
+    spec:
+      ports:
+        - name: gearman
+          port: 4730
+          protocol: TCP
+          targetPort: gearman
+      selector:
+        app.kubernetes.io/component: scheduler
+        app.kubernetes.io/instance: demo01
+        app.kubernetes.io/name: demo01
+        app.kubernetes.io/part-of: zuul
+      type: ClusterIP
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        app.kubernetes.io/component: executor
+        app.kubernetes.io/instance: demo01
+        app.kubernetes.io/name: demo01
+        app.kubernetes.io/part-of: zuul
+      name: executor
+    spec:
+      ports:
+        - name: finger
+          port: 7900
+          protocol: TCP
+          targetPort: finger
+      selector:
+        app.kubernetes.io/component: executor
+        app.kubernetes.io/instance: demo01
+        app.kubernetes.io/name: demo01
+        app.kubernetes.io/part-of: zuul
+      type: ClusterIP
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        app.kubernetes.io/component: web
+        app.kubernetes.io/instance: demo01
+        app.kubernetes.io/name: demo01
+        app.kubernetes.io/part-of: zuul
+      name: web
+    spec:
+      ports:
+        - name: api
+          port: 9000
+          protocol: TCP
+          targetPort: api
+      selector:
+        app.kubernetes.io/component: web
+        app.kubernetes.io/instance: demo01
+        app.kubernetes.io/name: demo01
+        app.kubernetes.io/part-of: zuul
+      type: ClusterIP
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        app.kubernetes.io/component: config
+        app.kubernetes.io/instance: demo01
+        app.kubernetes.io/name: demo01
+        app.kubernetes.io/part-of: zuul
+      name: demo01-config
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app.kubernetes.io/component: config
+          app.kubernetes.io/instance: demo01
+          app.kubernetes.io/name: demo01
+          app.kubernetes.io/part-of: zuul
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/component: config
+            app.kubernetes.io/instance: demo01
+            app.kubernetes.io/name: demo01
+            app.kubernetes.io/part-of: zuul
+          name: config
+        spec:
+          containers:
+            - args:
+                - sh
+                - "-c"
+                - "mkdir -p /git/config; cp /config/* /git/config;cd /git/config ;git config --global user.email zuul@localhost ;git config --global user.name Zuul ;git init . ;git add -A . ;git commit -m init ;git daemon --export-all --reuseaddr --verbose --base-path=/git/ /git/"
+              image: quay.io/software-factory/zuul:3.4
+              imagePullPolicy: IfNotPresent
+              name: config
+              ports:
+                - containerPort: 9418
+                  name: git
+              volumeMounts:
+                - mountPath: /config
+                  name: config
+          volumes:
+            - name: config
+              secret:
+                secretName: demo01-secret-config
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        app.kubernetes.io/component: web
+        app.kubernetes.io/instance: demo01
+        app.kubernetes.io/name: demo01
+        app.kubernetes.io/part-of: zuul
+      name: demo01-web
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app.kubernetes.io/component: web
+          app.kubernetes.io/instance: demo01
+          app.kubernetes.io/name: demo01
+          app.kubernetes.io/part-of: zuul
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/component: web
+            app.kubernetes.io/instance: demo01
+            app.kubernetes.io/name: demo01
+            app.kubernetes.io/part-of: zuul
+          name: web
+        spec:
+          containers:
+            - args:
+                - zuul-web
+                - "-d"
+              image: quay.io/software-factory/zuul-web:3.4
+              imagePullPolicy: IfNotPresent
+              name: web
+              ports:
+                - containerPort: 9000
+                  name: api
+              volumeMounts:
+                - mountPath: /etc/zuul
+                  name: zuul
+          initContainers:
+            - args:
+                - sh
+                - "-c"
+                - "until python -c 'import socket, sys; socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((sys.argv[1], 4730))' scheduler 2>/dev/null; do echo 'waiting for scheduler:4730'; sleep 1; done"
+              image: quay.io/software-factory/zuul:3.4
+              imagePullPolicy: IfNotPresent
+              name: web-init0
+              ports:
+                - containerPort: 9000
+                  name: api
+              volumeMounts:
+                - mountPath: /etc/zuul
+                  name: zuul
+          volumes:
+            - name: zuul
+              secret:
+                secretName: demo01-secret-zuul
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        app.kubernetes.io/component: launcher
+        app.kubernetes.io/instance: demo01
+        app.kubernetes.io/name: demo01
+        app.kubernetes.io/part-of: zuul
+      name: demo01-launcher
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app.kubernetes.io/component: launcher
+          app.kubernetes.io/instance: demo01
+          app.kubernetes.io/name: demo01
+          app.kubernetes.io/part-of: zuul
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/component: launcher
+            app.kubernetes.io/instance: demo01
+            app.kubernetes.io/name: demo01
+            app.kubernetes.io/part-of: zuul
+          name: launcher
+        spec:
+          containers:
+            - args:
+                - nodepool-launcher
+                - "-d"
+              env:
+                - name: KUBECONFIG
+                  value: /etc/nodepool/kube.config
+                - name: OS_CLIENT_CONFIG_FILE
+                  value: /etc/nodepool/clouds.yaml
+              image: quay.io/software-factory/nodepool-launcher:3.4
+              imagePullPolicy: IfNotPresent
+              name: launcher
+              volumeMounts:
+                - mountPath: /etc/nodepool
+                  name: nodepool
+          volumes:
+            - name: nodepool
+              secret:
+                secretName: demo01-secret-nodepool
+  - apiVersion: apps/v1
+    kind: StatefulSet
+    metadata:
+      labels:
+        app.kubernetes.io/component: zk
+        app.kubernetes.io/instance: demo01
+        app.kubernetes.io/name: demo01
+        app.kubernetes.io/part-of: zuul
+      name: demo01-zk
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app.kubernetes.io/component: zk
+          app.kubernetes.io/instance: demo01
+          app.kubernetes.io/name: demo01
+          app.kubernetes.io/part-of: zuul
+      serviceName: zk
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/component: zk
+            app.kubernetes.io/instance: demo01
+            app.kubernetes.io/name: demo01
+            app.kubernetes.io/part-of: zuul
+          name: zk
+        spec:
+          containers:
+            - image: quay.io/software-factory/zookeeper:3.4
+              imagePullPolicy: IfNotPresent
+              name: zk
+              ports:
+                - containerPort: 2181
+                  name: zk
+      volumeClaimTemplates:
+        - apiVersion: v1
+          kind: PersistentVolumeClaim
+          metadata:
+            name: demo01-zk
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 1Gi
+  - apiVersion: apps/v1
+    kind: StatefulSet
+    metadata:
+      labels:
+        app.kubernetes.io/component: db
+        app.kubernetes.io/instance: demo01
+        app.kubernetes.io/name: demo01
+        app.kubernetes.io/part-of: zuul
+      name: demo01-db
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app.kubernetes.io/component: db
+          app.kubernetes.io/instance: demo01
+          app.kubernetes.io/name: demo01
+          app.kubernetes.io/part-of: zuul
+      serviceName: db
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/component: db
+            app.kubernetes.io/instance: demo01
+            app.kubernetes.io/name: demo01
+            app.kubernetes.io/part-of: zuul
+          name: db
+        spec:
+          containers:
+            - env:
+                - name: POSTGRES_PASSWORD
+                  value: secret
+                - name: POSTGRES_USER
+                  value: zuul
+              image: docker.io/library/postgres:12.1
+              imagePullPolicy: IfNotPresent
+              name: db
+              ports:
+                - containerPort: 5432
+                  name: pg
+      volumeClaimTemplates:
+        - apiVersion: v1
+          kind: PersistentVolumeClaim
+          metadata:
+            name: demo01-db
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 1Gi
+  - apiVersion: apps/v1
+    kind: StatefulSet
+    metadata:
+      labels:
+        app.kubernetes.io/component: scheduler
+        app.kubernetes.io/instance: demo01
+        app.kubernetes.io/name: demo01
+        app.kubernetes.io/part-of: zuul
+      name: demo01-scheduler
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app.kubernetes.io/component: scheduler
+          app.kubernetes.io/instance: demo01
+          app.kubernetes.io/name: demo01
+          app.kubernetes.io/part-of: zuul
+      serviceName: scheduler
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/component: scheduler
+            app.kubernetes.io/instance: demo01
+            app.kubernetes.io/name: demo01
+            app.kubernetes.io/part-of: zuul
+          name: scheduler
+        spec:
+          containers:
+            - args:
+                - zuul-scheduler
+                - "-d"
+              image: quay.io/software-factory/zuul-scheduler:3.4
+              imagePullPolicy: IfNotPresent
+              name: scheduler
+              ports:
+                - containerPort: 4730
+                  name: gearman
+              volumeMounts:
+                - mountPath: /etc/zuul
+                  name: zuul
+          initContainers:
+            - args:
+                - sh
+                - "-c"
+                - "until python -c 'import socket, sys; socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((sys.argv[1], 5432))' db 2>/dev/null; do echo 'waiting for db:5432'; sleep 1; done"
+              image: quay.io/software-factory/zuul:3.4
+              imagePullPolicy: IfNotPresent
+              name: scheduler-init0
+              ports:
+                - containerPort: 4730
+                  name: gearman
+              volumeMounts:
+                - mountPath: /etc/zuul
+                  name: zuul
+          volumes:
+            - name: zuul
+              secret:
+                secretName: demo01-secret-zuul
+      volumeClaimTemplates:
+        - apiVersion: v1
+          kind: PersistentVolumeClaim
+          metadata:
+            name: demo01-scheduler
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 5Gi
+  - apiVersion: apps/v1
+    kind: StatefulSet
+    metadata:
+      labels:
+        app.kubernetes.io/component: executor
+        app.kubernetes.io/instance: demo01
+        app.kubernetes.io/name: demo01
+        app.kubernetes.io/part-of: zuul
+      name: demo01-executor
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app.kubernetes.io/component: executor
+          app.kubernetes.io/instance: demo01
+          app.kubernetes.io/name: demo01
+          app.kubernetes.io/part-of: zuul
+      serviceName: executor
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/component: executor
+            app.kubernetes.io/instance: demo01
+            app.kubernetes.io/name: demo01
+            app.kubernetes.io/part-of: zuul
+          name: executor
+        spec:
+          containers:
+            - args:
+                - zuul-executor
+                - "-d"
+              image: quay.io/software-factory/zuul-executor:3.4
+              imagePullPolicy: IfNotPresent
+              name: executor
+              ports:
+                - containerPort: 7900
+                  name: finger
+              securityContext:
+                privileged: true
+              volumeMounts:
+                - mountPath: /etc/zuul
+                  name: zuul
+          initContainers:
+            - args:
+                - sh
+                - "-c"
+                - "until python -c 'import socket, sys; socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((sys.argv[1], 4730))' scheduler 2>/dev/null; do echo 'waiting for scheduler:4730'; sleep 1; done"
+              image: quay.io/software-factory/zuul:3.4
+              imagePullPolicy: IfNotPresent
+              name: executor-init0
+              ports:
+                - containerPort: 7900
+                  name: finger
+              securityContext:
+                privileged: true
+              volumeMounts:
+                - mountPath: /etc/zuul
+                  name: zuul
+          volumes:
+            - name: zuul
+              secret:
+                secretName: demo01-secret-zuul
+  - apiVersion: networking.k8s.io/v1beta1
+    kind: Ingress
+    metadata:
+      labels:
+        app.kubernetes.io/component: web
+        app.kubernetes.io/instance: demo01
+        app.kubernetes.io/name: demo01
+        app.kubernetes.io/part-of: zuul
+      name: demo01-web
+    spec:
+      rules:
+        - http:
+            paths:
+              - backend:
+                  serviceName: web
+                  servicePort: 9000
+                path: /
+kind: List
