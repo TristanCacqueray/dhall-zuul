@@ -26,6 +26,7 @@ let Input
       , web : Web
       , scheduler : Scheduler
       , database : Optional UserSecret
+      , zookeeper : Optional UserSecret
       }
 
 let Prelude =
@@ -120,6 +121,22 @@ in  { Input = Input
                     (\(some : UserSecret) -> NoService)
                     [ Helpers.Services.Postgres ]
 
+            let zk-hosts =
+                  Optional/fold
+                    UserSecret
+                    input.zookeeper
+                    Text
+                    (\(some : UserSecret) -> "%(ZUUL_ZK_HOSTS)")
+                    "zk"
+
+            let zk-service =
+                  Optional/fold
+                    UserSecret
+                    input.zookeeper
+                    (List Operator.Types.Service)
+                    (\(some : UserSecret) -> NoService)
+                    [ Helpers.Services.ZooKeeper ]
+
             let zuul-conf =
                   ''
                   [gearman]
@@ -129,7 +146,7 @@ in  { Input = Input
                   start=true
 
                   [zookeeper]
-                  hosts=zk
+                  hosts=${zk-hosts}
 
                   [merger]
                   git_user_email=${merger-email}
@@ -156,6 +173,7 @@ in  { Input = Input
                 , kind = "zuul"
                 , services =
                       db-service
+                    # zk-service
                     # executor-service
                     # merger-service
                     # web-service
@@ -227,13 +245,27 @@ in  { Input = Input
                                 )
                                 NoEnvSecret
 
+                        let zk-hosts =
+                              Optional/fold
+                                UserSecret
+                                input.zookeeper
+                                (List Operator.Types.EnvSecret)
+                                (     \(some : UserSecret)
+                                  ->  [ { name = "ZUUL_ZK_HOSTS"
+                                        , secret = some.secretName
+                                        , key = DefaultText some.key "hosts"
+                                        }
+                                      ]
+                                )
+                                NoEnvSecret
+
                         in  merge
-                              { _All = db-uri
+                              { _All = db-uri # zk-hosts
                               , Database = NoEnvSecret
-                              , Scheduler = db-uri
-                              , Launcher = NoEnvSecret
+                              , Scheduler = db-uri # zk-hosts
+                              , Launcher = zk-hosts
                               , Executor = NoEnvSecret
-                              , Gateway = db-uri
+                              , Gateway = db-uri # zk-hosts
                               , Worker = NoEnvSecret
                               , Config = NoEnvSecret
                               , Other = NoEnvSecret

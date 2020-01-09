@@ -58,6 +58,27 @@ items:
     kind: Service
     metadata:
       labels:
+        app.kubernetes.io/component: zk
+        app.kubernetes.io/instance: zuul
+        app.kubernetes.io/name: zuul
+        app.kubernetes.io/part-of: zuul
+      name: zk
+    spec:
+      ports:
+        - name: zk
+          port: 2181
+          protocol: TCP
+          targetPort: zk
+      selector:
+        app.kubernetes.io/component: zk
+        app.kubernetes.io/instance: zuul
+        app.kubernetes.io/name: zuul
+        app.kubernetes.io/part-of: zuul
+      type: ClusterIP
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
         app.kubernetes.io/component: executor
         app.kubernetes.io/instance: zuul
         app.kubernetes.io/name: zuul
@@ -218,6 +239,51 @@ items:
           kind: PersistentVolumeClaim
           metadata:
             name: zuul-db
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 1Gi
+  - apiVersion: apps/v1
+    kind: StatefulSet
+    metadata:
+      labels:
+        app.kubernetes.io/component: zk
+        app.kubernetes.io/instance: zuul
+        app.kubernetes.io/name: zuul
+        app.kubernetes.io/part-of: zuul
+      name: zuul-zk
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app.kubernetes.io/component: zk
+          app.kubernetes.io/instance: zuul
+          app.kubernetes.io/name: zuul
+          app.kubernetes.io/part-of: zuul
+      serviceName: zk
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/component: zk
+            app.kubernetes.io/instance: zuul
+            app.kubernetes.io/name: zuul
+            app.kubernetes.io/part-of: zuul
+          name: zk
+        spec:
+          containers:
+            - image: quay.io/software-factory/zookeeper:3.4
+              imagePullPolicy: IfNotPresent
+              name: zk
+              ports:
+                - containerPort: 2181
+                  name: zk
+      volumeClaimTemplates:
+        - apiVersion: v1
+          kind: PersistentVolumeClaim
+          metadata:
+            name: zuul-zk
           spec:
             accessModes:
               - ReadWriteOnce
