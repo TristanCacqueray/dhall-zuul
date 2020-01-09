@@ -75,11 +75,17 @@ let Services =
           }
       , Merger =
           Service::{
-          , name = "launcher"
-          , type = ServiceType.Launcher
+          , name = "merger"
+          , type = ServiceType.Worker
+          , init-containers =
+              Some
+                [ { image = zuul-base
+                  , command = Some (waitFor "scheduler" 4730)
+                  }
+                ]
           , container =
-              { image = nodepool-image "launcher"
-              , command = Some [ "nodepool-launcher", "-d" ]
+              { image = zuul-image "merger"
+              , command = Some [ "zuul-merger", "-d" ]
               }
           }
       , Executor =
