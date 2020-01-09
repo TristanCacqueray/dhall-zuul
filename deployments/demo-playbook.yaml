@@ -148,6 +148,8 @@
         serole: object_r
         setype: container_file_t
         seuser: system_u
+    - command: "echo: NotImplemented"
+      name: "TODO: create fact from secret env volume content"
     - command: "podman create --name demo01-config --volume=demo01-config:/config --network=host quay.io/software-factory/zuul:3.4 \"sh\" \"-c\" \"mkdir -p /git/config; cp /config/* /git/config;cd /git/config ;git config --global user.email zuul@localhost ;git config --global user.name Zuul ;git init . ;git add -A . ;git commit -m init ;git daemon --export-all --reuseaddr --verbose --base-path=/git/ /git/\""
       name: "Create container"
     - file:

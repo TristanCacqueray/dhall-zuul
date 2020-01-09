@@ -12,5 +12,6 @@
     , config = { key = None Text, secretName = "zuul-yaml-conf" }
     }
 , web = { count = None Natural, status_url = None Text }
+, database = None { key : Optional Text, secretName : Text }
 , name = "zuul"
 }

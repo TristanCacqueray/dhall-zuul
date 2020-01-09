@@ -25,6 +25,7 @@ let Input
       , executor : Executor
       , web : Web
       , scheduler : Scheduler
+      , database : Optional UserSecret
       }
 
 let Prelude =
@@ -37,6 +38,8 @@ let Helpers = ./helpers.dhall
 let NoService = [] : List Operator.Types.Service
 
 let NoVolume = [] : List Operator.Types.Volume
+
+let NoEnvSecret = [] : List Operator.Types.EnvSecret
 
 let SetService =
           \(service : Operator.Types.Service)
@@ -98,6 +101,25 @@ in  { Input = Input
             let sched-config =
                   DefaultText input.scheduler.config.key "main.yaml"
 
+            let {- TODO: generate random password -} default-db-password =
+                  "super-secret"
+
+            let db-uri =
+                  Optional/fold
+                    UserSecret
+                    input.database
+                    Text
+                    (\(some : UserSecret) -> "%(ZUUL_DB_URI)")
+                    "postgresql://zuul:${default-db-password}@db/zuul"
+
+            let db-service =
+                  Optional/fold
+                    UserSecret
+                    input.database
+                    (List Operator.Types.Service)
+                    (\(some : UserSecret) -> NoService)
+                    [ Helpers.Services.Postgres ]
+
             let zuul-conf =
                   ''
                   [gearman]
@@ -124,17 +146,21 @@ in  { Input = Input
                   private_key_file=/etc/zuul-executor/${executor-key-name}
                   manage_ansible=false
 
+                  [connection "sql"]
+                  driver=sql
+                  dburi=${db-uri}
                   ''
 
             in  Operator.Schemas.Application::{
                 , name = input.name
                 , kind = "zuul"
                 , services =
-                      executor-service
+                      db-service
+                    # executor-service
                     # merger-service
                     # web-service
                     # sched-service
-                , environs = Helpers.DefaultEnv "db-pass"
+                , environs = Helpers.DefaultEnv default-db-password
                 , volumes =
                         \(serviceType : Operator.Types.ServiceType)
                     ->  let zuul =
@@ -183,6 +209,34 @@ in  { Input = Input
                               , Worker = NoVolume
                               , Config = NoVolume
                               , Other = NoVolume
+                              }
+                              serviceType
+                , env-secrets =
+                        \(serviceType : Operator.Types.ServiceType)
+                    ->  let db-uri =
+                              Optional/fold
+                                UserSecret
+                                input.database
+                                (List Operator.Types.EnvSecret)
+                                (     \(some : UserSecret)
+                                  ->  [ { name = "ZUUL_DB_URI"
+                                        , secret = some.secretName
+                                        , key = DefaultText some.key "db_uri"
+                                        }
+                                      ]
+                                )
+                                NoEnvSecret
+
+                        in  merge
+                              { _All = db-uri
+                              , Database = NoEnvSecret
+                              , Scheduler = db-uri
+                              , Launcher = NoEnvSecret
+                              , Executor = NoEnvSecret
+                              , Gateway = db-uri
+                              , Worker = NoEnvSecret
+                              , Config = NoEnvSecret
+                              , Other = NoEnvSecret
                               }
                               serviceType
                 }

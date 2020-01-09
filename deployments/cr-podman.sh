@@ -1,5 +1,5 @@
 #!/bin/bash -ex
-podman pod create --name zuul  --publish 9000:9000 
+podman pod create --name zuul   --publish 9000:9000 
 # Volume zuul
 podman volume create zuul-zuul || true
 VOLPATH=$(podman volume inspect zuul-zuul --format '{{.Mountpoint}}')
@@ -29,10 +29,14 @@ root=http://web:9000
 private_key_file=/etc/zuul-executor/id_rsa
 manage_ansible=false
 
+[connection "sql"]
+driver=sql
+dburi=postgresql://zuul:super-secret@db/zuul
 
 EOF
 
-podman run --pod zuul --name zuul-dns --detach --add-host=executor:127.0.0.1 --add-host=web:127.0.0.1 --add-host=scheduler:127.0.0.1 registry.fedoraproject.org/fedora:31 sleep infinity
+podman run --pod zuul --name zuul-dns --detach --add-host=db:127.0.0.1 --add-host=executor:127.0.0.1 --add-host=web:127.0.0.1 --add-host=scheduler:127.0.0.1 registry.fedoraproject.org/fedora:31 sleep infinity
+podman run --pod zuul --name zuul-db --detach --env=POSTGRES_PASSWORD='super-secret' --env=POSTGRES_USER='zuul' --rm docker.io/library/postgres:12.1
 podman run --pod zuul --name zuul-executor --privileged --volume=zuul-zuul:/etc/zuul --volume=executor-ssh-key:/etc/zuul-executor --rm quay.io/software-factory/zuul:3.4 "sh" "-c" "until python -c 'import socket, sys; socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((sys.argv[1], 4730))' scheduler 2>/dev/null; do echo 'waiting for scheduler:4730'; sleep 1; done"
 podman run --pod zuul --name zuul-executor --privileged --detach --volume=zuul-zuul:/etc/zuul --volume=executor-ssh-key:/etc/zuul-executor --rm quay.io/software-factory/zuul-executor:3.4 "zuul-executor" "-d"
 podman run --pod zuul --name zuul-web --volume=zuul-zuul:/etc/zuul --rm quay.io/software-factory/zuul:3.4 "sh" "-c" "until python -c 'import socket, sys; socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((sys.argv[1], 4730))' scheduler 2>/dev/null; do echo 'waiting for scheduler:4730'; sleep 1; done"
