@@ -80,7 +80,7 @@
         name: zuul-zk
         scope: user
         state: started
-    - command: "podman create --name zuul-executor --privileged --volume=zuul-zuul:/etc/zuul --volume=executor-ssh-key:/etc/zuul-executor --volume=rdo-key:/etc/zuul-gerrit-review.rdoproject.org --network=host quay.io/software-factory/zuul-executor:3.4 \"zuul-executor\" \"-d\""
+    - command: "podman create --name zuul-executor --privileged --volume=zuul-zuul:/etc/zuul --volume=executor-ssh-key:/etc/zuul-executor --volume=rdo-key:/etc/zuul-gerrit-review.rdoproject.org --volume=github:/etc/zuul-github-github.com --network=host quay.io/software-factory/zuul-executor:3.4 \"zuul-executor\" \"-d\""
       name: "Create container"
     - file:
         path: "{{ ansible_user_dir }}/.config/systemd/user"
@@ -104,7 +104,7 @@
         name: zuul-web
         scope: user
         state: started
-    - command: "podman create --name zuul-scheduler --volume=zuul-zuul:/etc/zuul --volume=zuul-yaml-conf:/etc/zuul-scheduler --volume=rdo-key:/etc/zuul-gerrit-review.rdoproject.org --network=host quay.io/software-factory/zuul-scheduler:3.4 \"zuul-scheduler\" \"-d\""
+    - command: "podman create --name zuul-scheduler --volume=zuul-zuul:/etc/zuul --volume=zuul-yaml-conf:/etc/zuul-scheduler --volume=rdo-key:/etc/zuul-gerrit-review.rdoproject.org --volume=github:/etc/zuul-github-github.com --network=host quay.io/software-factory/zuul-scheduler:3.4 \"zuul-scheduler\" \"-d\""
       name: "Create container"
     - file:
         path: "{{ ansible_user_dir }}/.config/systemd/user"

@@ -33,7 +33,12 @@ in  { executor =
                 }
               ]
         , githubs =
-            None (List { name : Text, app_id : Natural, app_key : Secret.Type })
+            Some
+              [ { name = "github.com"
+                , app_id = 42
+                , app_key = Secret::{ secretName = "github" }
+                }
+              ]
         , gitlabs = None (List Conn)
         , pagures = None (List Conn)
         , mqtts = None (List Conn)

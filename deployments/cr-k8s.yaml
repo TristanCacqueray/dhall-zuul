@@ -40,7 +40,7 @@ items:
         
         [connection review.rdoproject.org]
         driver=gerrit
-        servier=review.rdoproject.org
+        server=review.rdoproject.org
         sshkey=/etc/zuul-gerrit-review.rdoproject.org/id_rsa
         user=zuul
         baseurl=https://review.rdoproject.org/r/
@@ -347,6 +347,8 @@ items:
                   name: executor-ssh-key
                 - mountPath: /etc/zuul-gerrit-review.rdoproject.org
                   name: rdo-key
+                - mountPath: /etc/zuul-github-github.com
+                  name: github
           initContainers:
             - args:
                 - sh
@@ -367,6 +369,8 @@ items:
                   name: executor-ssh-key
                 - mountPath: /etc/zuul-gerrit-review.rdoproject.org
                   name: rdo-key
+                - mountPath: /etc/zuul-github-github.com
+                  name: github
           volumes:
             - name: zuul
               secret:
@@ -377,6 +381,9 @@ items:
             - name: rdo-key
               secret:
                 secretName: rdo-key
+            - name: github
+              secret:
+                secretName: github
   - apiVersion: apps/v1
     kind: StatefulSet
     metadata:
@@ -421,6 +428,8 @@ items:
                   name: zuul-yaml-conf
                 - mountPath: /etc/zuul-gerrit-review.rdoproject.org
                   name: rdo-key
+                - mountPath: /etc/zuul-github-github.com
+                  name: github
           volumes:
             - name: zuul
               secret:
@@ -431,6 +440,9 @@ items:
             - name: rdo-key
               secret:
                 secretName: rdo-key
+            - name: github
+              secret:
+                secretName: github
       volumeClaimTemplates:
         - apiVersion: v1
           kind: PersistentVolumeClaim

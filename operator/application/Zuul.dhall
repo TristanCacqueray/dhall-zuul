@@ -182,6 +182,22 @@ in  { Input = Input
                               ''
                     )
 
+            let githubs-conf =
+                  Helpers.mkConns
+                    GitHub
+                    input.connections.githubs
+                    (     \(github : GitHub)
+                      ->  let key = DefaultText github.app_key.key "github_rsa"
+
+                          in  ''
+                              [connection ${github.name}]
+                              driver=github
+                              server=github.com
+                              app_id={github.app_id}
+                              app_key=/etc/zuul-github-${github.name}/${key}
+                              ''
+                    )
+
             let gits-conf =
                   Helpers.mkConns
                     Git
@@ -289,14 +305,27 @@ in  { Input = Input
                                       }
                                 )
 
+                        let githubs-key =
+                              Helpers.mkConnVols
+                                GitHub
+                                input.connections.githubs
+                                (     \(github : GitHub)
+                                  ->  Operator.Schemas.Volume::{
+                                      , name = github.app_key.secretName
+                                      , dir = "/etc/zuul-github-${github.name}"
+                                      }
+                                )
+
+                        let conn-keys = gerrits-key # githubs-key
+
                         in  merge
                               { _All = NoVolume
                               , Database = NoVolume
-                              , Scheduler = sched-config # gerrits-key
+                              , Scheduler = sched-config # conn-keys
                               , Launcher = NoVolume
-                              , Executor = executor-ssh-key # gerrits-key
+                              , Executor = executor-ssh-key # conn-keys
                               , Gateway = NoVolume
-                              , Worker = gerrits-key
+                              , Worker = conn-keys
                               , Config = NoVolume
                               , Other = NoVolume
                               }
