@@ -45,6 +45,18 @@ items:
         user=zuul
         baseurl=https://review.rdoproject.org/r/
   - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: zuul-secret-nodepool
+    stringData:
+      nodepool.yaml: |
+        zookeeper-servers:
+          - host: zk
+            port: 2181
+        webapp:
+          port: 5000
+        
+  - apiVersion: v1
     kind: Service
     metadata:
       labels:
@@ -149,6 +161,62 @@ items:
         app.kubernetes.io/name: zuul
         app.kubernetes.io/part-of: zuul
       type: ClusterIP
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        app.kubernetes.io/component: launcher
+        app.kubernetes.io/instance: zuul
+        app.kubernetes.io/name: zuul
+        app.kubernetes.io/part-of: zuul
+      name: zuul-launcher
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app.kubernetes.io/component: launcher
+          app.kubernetes.io/instance: zuul
+          app.kubernetes.io/name: zuul
+          app.kubernetes.io/part-of: zuul
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/component: launcher
+            app.kubernetes.io/instance: zuul
+            app.kubernetes.io/name: zuul
+            app.kubernetes.io/part-of: zuul
+          name: launcher
+        spec:
+          containers:
+            - args:
+                - sh
+                - "-c"
+                - "cat /etc/nodepool/nodepool.yaml /etc/nodepool-user/nodepool.yaml > ~/nodepool.yaml ; nodepool-launcher -d -c ~/nodepool.yaml"
+              env:
+                - name: KUBECONFIG
+                  value: /etc/nodepool-kubenertes/kube.config
+                - name: OS_CLIENT_CONFIG_FILE
+                  value: /etc/nodepool-openstack/undefined
+              image: quay.io/software-factory/nodepool-launcher:3.4
+              imagePullPolicy: IfNotPresent
+              name: launcher
+              volumeMounts:
+                - mountPath: /etc/nodepool
+                  name: nodepool
+                - mountPath: /etc/nodepool-user
+                  name: nodepool-yaml-conf
+                - mountPath: /etc/nodepool-kubernetes
+                  name: kube-config
+          volumes:
+            - name: nodepool
+              secret:
+                secretName: zuul-secret-nodepool
+            - name: nodepool-yaml-conf
+              secret:
+                secretName: nodepool-yaml-conf
+            - name: kube-config
+              secret:
+                secretName: kube-config
   - apiVersion: apps/v1
     kind: Deployment
     metadata:

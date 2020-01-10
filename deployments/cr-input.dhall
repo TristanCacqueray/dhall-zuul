@@ -20,6 +20,11 @@ in  { executor =
         }
     , launcher =
         { config = { key = None Text, secretName = "nodepool-yaml-conf" } }
+    , external_config =
+        { kubernetes = Some { key = None Text, secretName = "kube-config" }
+        , openstack = None Secret.Type
+        , amazon = None Secret.Type
+        }
     , web = { count = None Natural, status_url = None Text }
     , database = None { key : Optional Text, secretName : Text }
     , zookeeper = None { key : Optional Text, secretName : Text }

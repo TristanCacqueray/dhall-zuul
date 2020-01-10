@@ -10,6 +10,10 @@
       name: "Get or create volume"
       register: _volume_zuul
       shell: "podman volume inspect zuul-zuul --format \"{{'{{'}}.Mountpoint{{'}}'}}\" || ( podman volume create zuul-zuul && podman volume inspect zuul-zuul --format \"{{'{{'}}.Mountpoint{{'}}'}}\" )"
+    - changed_when: _volume_nodepool.stderr
+      name: "Get or create volume"
+      register: _volume_nodepool
+      shell: "podman volume inspect zuul-nodepool --format \"{{'{{'}}.Mountpoint{{'}}'}}\" || ( podman volume create zuul-nodepool && podman volume inspect zuul-nodepool --format \"{{'{{'}}.Mountpoint{{'}}'}}\" )"
     - copy:
         content: |
           [gearman]
@@ -54,6 +58,18 @@
         serole: object_r
         setype: container_file_t
         seuser: system_u
+    - copy:
+        content: |
+          zookeeper-servers:
+            - host: zk
+              port: 2181
+          webapp:
+            port: 5000
+          
+        dest: "{{ _volume_nodepool.stdout_lines[-1] }}/nodepool.yaml"
+        serole: object_r
+        setype: container_file_t
+        seuser: system_u
     - command: "echo: NotImplemented"
       name: "TODO: create fact from secret env volume content"
     - command: "podman create --name zuul-db --env=POSTGRES_PASSWORD='super-secret' --env=POSTGRES_USER='zuul' --network=host docker.io/library/postgres:12.1"
@@ -80,7 +96,7 @@
         name: zuul-zk
         scope: user
         state: started
-    - command: "podman create --name zuul-launcher --volume=zuul-nodepool:/etc/nodepool --volume=nodepool-yaml-conf:/etc/nodepool-user --env=KUBECONFIG='/etc/nodepool/kube.config' --env=OS_CLIENT_CONFIG_FILE='/etc/nodepool/clouds.yaml' --network=host quay.io/software-factory/nodepool-launcher:3.4 \"sh\" \"-c\" \"cat /etc/nodepool/nodepool.yaml /etc/nodepool-user/nodepool.yaml > ~/nodepool.yaml;nodepool-launcher -d -c ~/nodepool.yaml\""
+    - command: "podman create --name zuul-launcher --volume=zuul-nodepool:/etc/nodepool --volume=nodepool-yaml-conf:/etc/nodepool-user --volume=kube-config:/etc/nodepool-kubernetes --env=KUBECONFIG='/etc/nodepool-kubenertes/kube.config' --env=OS_CLIENT_CONFIG_FILE='/etc/nodepool-openstack/undefined' --network=host quay.io/software-factory/nodepool-launcher:3.4 \"sh\" \"-c\" \"cat /etc/nodepool/nodepool.yaml /etc/nodepool-user/nodepool.yaml > ~/nodepool.yaml ; nodepool-launcher -d -c ~/nodepool.yaml\""
       name: "Create container"
     - file:
         path: "{{ ansible_user_dir }}/.config/systemd/user"

@@ -48,6 +48,11 @@ let Input
       , launcher : Launcher
       , database : Optional UserSecret
       , zookeeper : Optional UserSecret
+      , external_config :
+          { openstack : Optional UserSecret
+          , kubernetes : Optional UserSecret
+          , amazon : Optional UserSecret
+          }
       , connections :
           { gerrits : Optional (List Gerrit)
           , githubs : Optional (List GitHub)
@@ -80,6 +85,11 @@ let SetService =
 
           else  [ service // { count = count } ]
 
+let OptionalVolume =
+          \(value : Optional UserSecret)
+      ->  \(f : UserSecret -> List Operator.Types.Volume)
+      ->  Optional/fold UserSecret value (List Operator.Types.Volume) f NoVolume
+
 let DefaultNat =
           \(value : Optional Natural)
       ->  \(default : Natural)
@@ -94,6 +104,16 @@ let DefaultText =
           \(value : Optional Text)
       ->  \(default : Text)
       ->  Optional/fold Text value Text (\(some : Text) -> some) default
+
+let DefaultKey =
+          \(secret : Optional UserSecret)
+      ->  \(default : Text)
+      ->  Optional/fold
+            UserSecret
+            secret
+            Text
+            (\(some : UserSecret) -> DefaultText some.key default)
+            "undefined"
 
 in  { Input = Input
     , Application =
@@ -312,7 +332,42 @@ in  { Input = Input
                     # merger-service
                     # web-service
                     # sched-service
-                , environs = Helpers.DefaultEnv default-db-password
+                , environs =
+                        \(serviceType : Operator.Types.ServiceType)
+                    ->  let db-env =
+                              toMap
+                                { POSTGRES_USER = "zuul"
+                                , POSTGRES_PASSWORD = default-db-password
+                                }
+
+                        let nodepool-env =
+                              toMap
+                                { KUBECONFIG =
+                                        "/etc/nodepool-kubenertes/"
+                                    ++  DefaultKey
+                                          input.external_config.kubernetes
+                                          "kube.config"
+                                , OS_CLIENT_CONFIG_FILE =
+                                        "/etc/nodepool-openstack/"
+                                    ++  DefaultKey
+                                          input.external_config.openstack
+                                          "clouds.yaml"
+                                }
+
+                        let empty = [] : List Operator.Types.Env
+
+                        in  merge
+                              { _All = db-env
+                              , Database = db-env
+                              , Config = empty
+                              , Scheduler = empty
+                              , Launcher = nodepool-env
+                              , Executor = empty
+                              , Gateway = empty
+                              , Worker = empty
+                              , Other = empty
+                              }
+                              serviceType
                 , volumes =
                         \(serviceType : Operator.Types.ServiceType)
                     ->  let zuul =
@@ -334,7 +389,7 @@ in  { Input = Input
                               }
 
                         in  merge
-                              { _All = [ zuul ]
+                              { _All = [ zuul, nodepool ]
                               , Database = NoVolume
                               , Scheduler = [ zuul ]
                               , Launcher = [ nodepool ]
@@ -355,11 +410,29 @@ in  { Input = Input
                               ]
 
                         let launcher-config =
-                              [ Operator.Schemas.Volume::{
-                                , name = input.launcher.config.secretName
-                                , dir = "/etc/nodepool-user"
-                                }
-                              ]
+                                [ Operator.Schemas.Volume::{
+                                  , name = input.launcher.config.secretName
+                                  , dir = "/etc/nodepool-user"
+                                  }
+                                ]
+                              # OptionalVolume
+                                  input.external_config.openstack
+                                  (     \(conf : UserSecret)
+                                    ->  [ Operator.Schemas.Volume::{
+                                          , name = conf.secretName
+                                          , dir = "/etc/nodepool-openstack"
+                                          }
+                                        ]
+                                  )
+                              # OptionalVolume
+                                  input.external_config.kubernetes
+                                  (     \(conf : UserSecret)
+                                    ->  [ Operator.Schemas.Volume::{
+                                          , name = conf.secretName
+                                          , dir = "/etc/nodepool-kubernetes"
+                                          }
+                                        ]
+                                  )
 
                         let sched-config =
                               [ Operator.Schemas.Volume::{
