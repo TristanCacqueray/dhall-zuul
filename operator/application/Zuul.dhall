@@ -66,6 +66,8 @@ let Input
 let Prelude =
       https://prelude.dhall-lang.org/v12.0.0/package.dhall sha256:aea6817682359ae1939f3a15926b84ad5763c24a3740103202d2eaaea4d01f4c
 
+let extra-kube-path = "/etc/nodepool-kubernetes/"
+
 let Operator = ./Operator.dhall
 
 let Helpers = ./helpers.dhall
@@ -344,7 +346,7 @@ in  { Input = Input
                         let nodepool-env =
                               toMap
                                 { KUBECONFIG =
-                                        "/etc/nodepool-kubenertes/"
+                                        extra-kube-path
                                     ++  DefaultKey
                                           input.external_config.kubernetes
                                           "kube.config"
@@ -430,7 +432,7 @@ in  { Input = Input
                                   (     \(conf : UserSecret)
                                     ->  [ Operator.Schemas.Volume::{
                                           , name = conf.secretName
-                                          , dir = "/etc/nodepool-kubernetes"
+                                          , dir = extra-kube-path
                                           }
                                         ]
                                   )
