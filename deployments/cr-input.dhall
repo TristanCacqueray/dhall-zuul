@@ -18,6 +18,8 @@ in  { executor =
         { count = None Natural
         , config = { key = None Text, secretName = "zuul-yaml-conf" }
         }
+    , launcher =
+        { config = { key = None Text, secretName = "nodepool-yaml-conf" } }
     , web = { count = None Natural, status_url = None Text }
     , database = None { key : Optional Text, secretName : Text }
     , zookeeper = None { key : Optional Text, secretName : Text }

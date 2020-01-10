@@ -18,6 +18,8 @@ let Web = { count : Optional Natural, status_url : Optional Text }
 
 let Scheduler = { count : Optional Natural, config : UserSecret }
 
+let Launcher = { config : UserSecret }
+
 let Gerrit =
       { name : Text
       , server : Optional Text
@@ -43,6 +45,7 @@ let Input
       , executor : Executor
       , web : Web
       , scheduler : Scheduler
+      , launcher : Launcher
       , database : Optional UserSecret
       , zookeeper : Optional UserSecret
       , connections :
@@ -119,6 +122,49 @@ in  { Input = Input
                   SetService Helpers.Services.Web (DefaultNat input.web.count 1)
 
             let web-url = DefaultText input.web.status_url "http://web:9000"
+
+            let concat-config =
+                      \(src : List Text)
+                  ->  \(output : Text)
+                  ->  \(service : Operator.Types.Service)
+                  ->  let command =
+                            Operator.Functions.getCommand service.container
+
+                      in      service
+                          //  { container =
+                                      service.container
+                                  //  { command =
+                                          Some
+                                            [ "sh"
+                                            , "-c"
+                                            , Prelude.Text.concatSep
+                                                " ; "
+                                                (   [     "cat "
+                                                      ++  Prelude.Text.concatSep
+                                                            " "
+                                                            src
+                                                      ++  " > "
+                                                      ++  output
+                                                    ]
+                                                  # [     Prelude.Text.concatSep
+                                                            " "
+                                                            command
+                                                      ++  " -c "
+                                                      ++  output
+                                                    ]
+                                                )
+                                            ]
+                                      }
+                              }
+
+            let launcher-service =
+                  concat-config
+                    [ "/etc/nodepool/nodepool.yaml"
+                    ,     "/etc/nodepool-user/"
+                      ++  DefaultText input.launcher.config.key "nodepool.yaml"
+                    ]
+                    "~/nodepool.yaml"
+                    Helpers.Services.Launcher
 
             let sched-service =
                   SetService
@@ -245,12 +291,23 @@ in  { Input = Input
                   ++  gits-conf
                   ++  gerrits-conf
 
+            let nodepool-conf =
+                  ''
+                  zookeeper-servers:
+                    - host: ${zk-hosts}
+                      port: 2181
+                  webapp:
+                    port: 5000
+
+                  ''
+
             in  Operator.Schemas.Application::{
                 , name = input.name
                 , kind = "zuul"
                 , services =
                       db-service
                     # zk-service
+                    # [ launcher-service ]
                     # executor-service
                     # merger-service
                     # web-service
@@ -266,11 +323,21 @@ in  { Input = Input
                                   ]
                               }
 
+                        let nodepool =
+                              { name = "nodepool"
+                              , dir = "/etc/nodepool"
+                              , files =
+                                  [ { path = "nodepool.yaml"
+                                    , content = nodepool-conf
+                                    }
+                                  ]
+                              }
+
                         in  merge
                               { _All = [ zuul ]
                               , Database = NoVolume
                               , Scheduler = [ zuul ]
-                              , Launcher = NoVolume
+                              , Launcher = [ nodepool ]
                               , Executor = [ zuul ]
                               , Gateway = [ zuul ]
                               , Worker = [ zuul ]
@@ -284,6 +351,13 @@ in  { Input = Input
                               [ Operator.Schemas.Volume::{
                                 , name = input.executor.ssh_key.secretName
                                 , dir = "/etc/zuul-executor"
+                                }
+                              ]
+
+                        let launcher-config =
+                              [ Operator.Schemas.Volume::{
+                                , name = input.launcher.config.secretName
+                                , dir = "/etc/nodepool-user"
                                 }
                               ]
 
@@ -322,7 +396,7 @@ in  { Input = Input
                               { _All = NoVolume
                               , Database = NoVolume
                               , Scheduler = sched-config # conn-keys
-                              , Launcher = NoVolume
+                              , Launcher = launcher-config
                               , Executor = executor-ssh-key # conn-keys
                               , Gateway = NoVolume
                               , Worker = conn-keys
