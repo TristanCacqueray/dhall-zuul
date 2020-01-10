@@ -9,6 +9,8 @@ let Service = Operator.Schemas.Service
 
 let Port = Operator.Schemas.Port
 
+let Volume = Operator.Schemas.Volume
+
 let Env = Operator.Types.Env
 
 let ServiceType = Operator.Types.ServiceType
@@ -27,6 +29,8 @@ let zuul-image = \(name : Text) -> "${org}/zuul-${name}:${sf-version}"
 
 let nodepool-image = \(name : Text) -> "${org}/nodepool-${name}:${sf-version}"
 
+let zuul-data = [ Volume::{ name = "zuul-data", dir = "/var/lib/zuul/" } ]
+
 let Services =
       { ZooKeeper =
           Service::{
@@ -34,6 +38,10 @@ let Services =
           , container = Container::{ image = zk-image }
           , volume-size = Some 1
           , ports = Some [ Port::{ container = 2181, name = "zk" } ]
+          , data-dir =
+              [ Volume::{ name = "zk-log", dir = "/var/log/zookeeper/" }
+              , Volume::{ name = "zk-dat", dir = "/var/lib/zookeeper/" }
+              ]
           }
       , Postgres =
           Service::{
@@ -42,12 +50,14 @@ let Services =
           , ports = Some [ Port::{ container = 5432, name = "pg" } ]
           , volume-size = Some 1
           , container = Container::{ image = "docker.io/library/postgres:12.1" }
+          , data-dir = [ Volume::{ name = "pg-data", dir = "/var/lib/pg/" } ]
           }
       , InternalConfig =
           Service::{
           , name = "config"
           , type = ServiceType.Config
           , ports = Some [ Port::{ container = 9418, name = "git" } ]
+          , data-dir = [ Volume::{ name = "git-data", dir = "/git" } ]
           , container =
               { image = zuul-base
               , command =
@@ -75,6 +85,7 @@ let Services =
               { image = zuul-image "scheduler"
               , command = Some [ "zuul-scheduler", "-d" ]
               }
+          , data-dir = zuul-data
           }
       , Merger =
           Service::{
@@ -90,6 +101,7 @@ let Services =
               { image = zuul-image "merger"
               , command = Some [ "zuul-merger", "-d" ]
               }
+          , data-dir = zuul-data
           }
       , Executor =
           Service::{
@@ -108,6 +120,7 @@ let Services =
               { image = zuul-image "executor"
               , command = Some [ "zuul-executor", "-d" ]
               }
+          , data-dir = zuul-data
           }
       , Web =
           Service::{
@@ -133,6 +146,8 @@ let Services =
               { image = nodepool-image "launcher"
               , command = Some [ "nodepool-launcher", "-d" ]
               }
+          , data-dir =
+              [ Volume::{ name = "nodepool-data", dir = "/var/lib/nodepool" } ]
           }
       }
 
@@ -183,13 +198,19 @@ in  { Services = Services
             \(db-password : Text)
         ->  let db-env =
                   toMap
-                    { POSTGRES_USER = "zuul", POSTGRES_PASSWORD = db-password }
+                    { POSTGRES_USER = "zuul"
+                    , POSTGRES_PASSWORD = db-password
+                    , PGDATA = "/var/lib/pg/data"
+                    }
 
             let nodepool-env =
                   toMap
                     { KUBECONFIG = "/etc/nodepool/kube.config"
                     , OS_CLIENT_CONFIG_FILE = "/etc/nodepool/clouds.yaml"
+                    , HOME = "/var/lib/nodepool"
                     }
+
+            let zuul-env = toMap { HOME = "/var/lib/zuul" }
 
             let empty = [] : List Env
 
@@ -200,11 +221,11 @@ in  { Services = Services
                         { _All = db-env
                         , Database = db-env
                         , Config = empty
-                        , Scheduler = empty
+                        , Scheduler = zuul-env
                         , Launcher = nodepool-env
-                        , Executor = empty
-                        , Gateway = empty
-                        , Worker = empty
+                        , Executor = zuul-env
+                        , Gateway = zuul-env
+                        , Worker = zuul-env
                         , Other = empty
                         }
                         serviceType

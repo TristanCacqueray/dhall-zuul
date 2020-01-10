@@ -341,6 +341,7 @@ in  { Input = Input
                               toMap
                                 { POSTGRES_USER = "zuul"
                                 , POSTGRES_PASSWORD = default-db-password
+                                , PGDATA = "/var/lib/pg/data"
                                 }
 
                         let nodepool-env =
@@ -355,7 +356,10 @@ in  { Input = Input
                                     ++  DefaultKey
                                           input.external_config.openstack
                                           "clouds.yaml"
+                                , HOME = "/var/lib/nodepool"
                                 }
+
+                        let zuul-env = toMap { HOME = "/var/lib/zuul" }
 
                         let empty = [] : List Operator.Types.Env
 
@@ -363,11 +367,11 @@ in  { Input = Input
                               { _All = db-env
                               , Database = db-env
                               , Config = empty
-                              , Scheduler = empty
+                              , Scheduler = zuul-env
                               , Launcher = nodepool-env
-                              , Executor = empty
-                              , Gateway = empty
-                              , Worker = empty
+                              , Executor = zuul-env
+                              , Gateway = zuul-env
+                              , Worker = zuul-env
                               , Other = empty
                               }
                               serviceType
