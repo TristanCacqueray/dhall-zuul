@@ -310,6 +310,7 @@ in  { Input = Input
                       ''
                   ++  gits-conf
                   ++  gerrits-conf
+                  ++  githubs-conf
 
             let nodepool-conf =
                   ''

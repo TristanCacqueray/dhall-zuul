@@ -43,6 +43,11 @@ server=review.rdoproject.org
 sshkey=/etc/zuul-gerrit-review.rdoproject.org/id_rsa
 user=zuul
 baseurl=https://review.rdoproject.org/r/
+[connection github.com]
+driver=github
+server=github.com
+app_id={github.app_id}
+app_key=/etc/zuul-github-github.com/github_rsa
 
 EOF
 
