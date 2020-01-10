@@ -46,9 +46,70 @@ items:
       name: nodepool-yaml-conf
     stringData:
       nodepool.yaml: |
-        labels: []
-        providers: []
-        # user provided conf
+        labels:
+          - name: pod-centos
+            min-ready: 1
+        providers:
+          - name: kube-cluster
+            driver: openshiftpods
+            context: local
+            max-pods: 15
+            pools:
+            - name: default
+              labels:
+                - name: pod-centos
+                  image: quay.io/software-factory/pod-centos-7
+                  python-path: /bin/python2
+
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: nodepool-kube-config
+    stringData:
+      kube.config: |
+        apiVersion: v1
+        kind: Config
+        preferences: {}
+        clusters:
+        - cluster:
+            server: https://10.43.0.1:8043
+            insecure-skip-tls-verify: true
+          name: local
+        users:
+        - name: nodepool
+          user:
+            ca.crt: |
+              -----BEGIN CERTIFICATE-----
+              MIIDPzCCAiegAwIBAgIUPa2ZqA4O9lLf8RUnfPSn7iGmPWswDQYJKoZIhvcNAQEL
+              BQAwLzELMAkGA1UEBhMCRlIxEzARBgNVBAoMClNpbHZlckt1YmUxCzAJBgNVBAsM
+              AjQyMB4XDTIwMDEwNjE3NTU0NVoXDTMwMDEwMzE3NTU0NVowLzELMAkGA1UEBhMC
+              RlIxEzARBgNVBAoMClNpbHZlckt1YmUxCzAJBgNVBAsMAjQyMIIBIjANBgkqhkiG
+              9w0BAQEFAAOCAQ8AMIIBCgKCAQEAlv5kLyjcBBnLIsZfBdQ/24dmZp3VGAXMYk8F
+              K8uiAORI4sHv7dcrT2seGQloaFHgduBEkkMOdHXvrAPptaFF6JWq5GnmwyEm2M5b
+              rRpYhgKD5BCOzTFS9IAgkVEyk7FAU+iHzFtQ2X1ktp6/59tlXACvefgFVDsQBsLb
+              9F549R89D8Di+SHYRT9lhRdZEwNmkIIP7HQaSWCd0EEjlDrK0NDrsilumt2gmo3k
+              24e/EVoKrAr8LOs9oP0w4Jzke1b41Jaax6P/iGs7TZWWB/YamYHWrz8bMglR19hV
+              Ozsdm5H0tgipTsl8Ozs0xQzTTjLI+axE6/+dogOxPCFzbrLlHQIDAQABo1MwUTAd
+              BgNVHQ4EFgQU0+sDEB0XYWICzTEZpXVu8Kxrgp4wHwYDVR0jBBgwFoAU0+sDEB0X
+              YWICzTEZpXVu8Kxrgp4wDwYDVR0TAQH/BAUwAwEB/zANBgkqhkiG9w0BAQsFAAOC
+              AQEAPWLVegnP5bhQ3zOkeY7+32uBIgN6DKtqyOsatj9xk6qEUk1syctyHfEGd7Uf
+              APtTDwJmPBCUsDeZZ4LX4CFc+6UWw4sKH04iSP1dGUEwWQCLTavP8WTIFSnI1hO1
+              1Pbj5iOVdCQerWkf9+cVPDCEQQtzYact6sbQnBHArSTpsyCMWeBribQ4Cz9Wbkrv
+              w92Dy/qosmiJ38b4ueaasyPJ7hyWIQvNDL+4doPGB7j9sgU+Kcwf6UxJViQGACJG
+              FDa1rKSfn0llBt5+oXB0e+1t3AUKJFieHuLyqbNTEkdlzDuJKW9kxSZhjetWGPQ3
+              EgliTqJgLjtNK7CjLotVN5k/QA==
+              -----END CERTIFICATE-----
+
+            token: eyJhbGciOiJSUzI1NiIsImtpZCI6InNPNGRNT3dFZGwzQzYxSm4tWC1DeWRieE4wUTRIc3dpWThrN1E5Mk8wS2cifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJkZWZhdWx0Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZWNyZXQubmFtZSI6Im5vZGVwb29sLXRva2VuLTVsbjdsIiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQubmFtZSI6Im5vZGVwb29sIiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQudWlkIjoiYWRlMDZkNTUtMzEwZi00OWNiLWJlZGUtMjllOTMzMWExYmNhIiwic3ViIjoic3lzdGVtOnNlcnZpY2VhY2NvdW50OmRlZmF1bHQ6bm9kZXBvb2wifQ.xLi7vlNzMI7E8fqKNJ6VH-CxdzCw1--IEQ4QVD8dm3JdYMRrQT4uFeNnhrxT7gqUf_vV2B821W3ALmpDvJW9EzMGWshGGWsnNlUJ7w0T9tFBd-fsAgZeomBvq_yzJt7Ud7Ug7ysiR2_DMUNQynPavl-D3fS5SMDSHjm_vMKYYF78ds2SCFu85AJOG0Xu4_1Dzd2r0GihfXMc7aAxvtVba4g38_d1oZjmSWddNE4loHxocmAxfFohNl_hui22zAOM1Z4xlZ7w8MCuTTLfKIExSAaAsfZb1yGZ4eN35wfLBaGHCscCjZl4ctos92WeWyzEjs901AIg3BqqlbR7tSEdLg
+
+        contexts:
+        - context:
+            cluster: local
+            user: nodepool
+            namespace: default
+          name: local
+        current-context: local
+        apiVersion: v1
 
 ---
 
@@ -73,3 +134,7 @@ spec:
     gits:
       - baseurl: https://opendev.org
         name: opendev.org
+  external_config:
+    kubernetes:
+      secretName: nodepool-kube-config
+      key: kube.config
