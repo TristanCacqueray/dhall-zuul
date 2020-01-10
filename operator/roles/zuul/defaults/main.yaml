@@ -1,3 +1,7 @@
 name: "{{ meta.name | default('zuul') }}"
-zuul_app_path: "/opt/ansible/dhall/applications/Zuul.dhall"
+zuul_app_path: "/opt/ansible/dhall/applications/zuul/Zuul.dhall"
 kubernetes_deploy_path: "/opt/ansible/dhall/deploy/Kubernetes.dhall"
+
+# Here we use  _softwarefactory-project_io_zuul_spec to get un-modified cr
+# see: https://github.com/operator-framework/operator-sdk/issues/1770
+raw_spec: "{{ vars['_softwarefactory-project_io_zuul_spec'] }}"

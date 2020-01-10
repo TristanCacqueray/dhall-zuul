@@ -1,28 +1,75 @@
+# User provided configuration
+apiVersion: v1
+kind: List
+items:
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: executor-ssh-key
+    stringData:
+      id_rsa: |
+          -----BEGIN OPENSSH PRIVATE KEY-----
+          b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAlwAAAAdzc2gtcn
+          NhAAAAAwEAAQAAAIEAxETTnagYWAfJK5b4k8DYtoWnDu+Uwvfn7ZJSzSt9YJMU8nP02fIJ
+          tZ3A9WoV7tppNjzsT3kV/h1efagL0wEXqETjClYh+DQ0IKRrJiGZwD+JgJo0zP0gTuoga6
+          T0CkxJcraCrUpKJcN7sCEtb4rLbNCJDeZcJT7TE4Ce4SdskCcAAAIQOyrkbTsq5G0AAAAH
+          c3NoLXJzYQAAAIEAxETTnagYWAfJK5b4k8DYtoWnDu+Uwvfn7ZJSzSt9YJMU8nP02fIJtZ
+          3A9WoV7tppNjzsT3kV/h1efagL0wEXqETjClYh+DQ0IKRrJiGZwD+JgJo0zP0gTuoga6T0
+          CkxJcraCrUpKJcN7sCEtb4rLbNCJDeZcJT7TE4Ce4SdskCcAAAADAQABAAAAgENeGIDR9O
+          EqcvuaS2Jz3C7yO0BeLeKqMxqRkghIeDWQ5qy97npsoLaNGnFiY3rjzx9F1BsHRew+anOZ
+          Hc3kXxjSAKUJn2VO7MYWBdv8J+C9HGDyOhorvCWpwzTUaFMQn+QNIJ+y0A/AZKg7X9oZZn
+          0HgGQe7Zeam6vVX6HIrCVJAAAAQQCC7vzohHa7a4Yl/+O7XeV60taTE4siKhCmCXcVhIwt
+          98dRhFD4n7c3s4UTRABApNppVhdABMCGHlG/MSOf6o94AAAAQQDirDR46I7oMQ0OL4pPqp
+          1A1n21Kq8KYTw5KG7zpQOqaD2FN7vR8ugUe6vEa9eNptYA2tb25LHmEnvcC79qsCw9AAAA
+          QQDdqZgN/s2zo+FPm3cEFrUMxn5l9IBSSrRwy/BFC8wMDvjAZHW6HycCQ97l41HNudNX3S
+          a56gV9hNojMrdOHsAzAAAAFmZlZG9yYUBmZWRvcmEucmRvY2xvdWQBAgME
+          -----END OPENSSH PRIVATE KEY-----
+
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: zuul-yaml-conf
+    stringData:
+      main.yaml: |
+        - tenant:
+            name: local
+            source:
+              opendev.org:
+                config-projects:
+                  - zuul/zuul-base-jobs
+                untrusted-projects:
+                  - zuul/zuul-jobs
+
+  - apiVersion: v1
+    kind: Secret
+    metadata:
+      name: nodepool-yaml-conf
+    stringData:
+      nodepool.yaml: |
+        labels: []
+        providers: []
+        # user provided conf
+
+---
+
 apiVersion: softwarefactory-project.io/v1alpha1
 kind: Zuul
 metadata:
   name: zuul
 spec:
   executor:
+    count: 1
     ssh_key:
       secretName: executor-ssh-key
-  merger: {}
-  web: {}
+  merger:
+    count: 1
   scheduler:
     config:
       secretName: zuul-yaml-conf
+  launcher:
+    config:
+      secretName: nodepool-yaml-conf
   connections:
-    gerrits:
-      - baseurl: https://review.rdoproject.org/r/
-        name: review.rdoproject.org
-        sshkey:
-          secretName: rdo-key
-        user: zuul
-    githubs:
-      - app_id: 42
-        app_key:
-          secretName: github
-        name: github.com
     gits:
       - baseurl: https://opendev.org
         name: opendev.org

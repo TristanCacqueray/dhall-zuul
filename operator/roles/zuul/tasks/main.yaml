@@ -1,12 +1,22 @@
+# TODO: Generate tls cert secret
+# TODO: query gearman for build queue size
+# TODO: update the executor/merger replica count
+
 - name: Convert spec to template input
   json_to_dhall:
     schema: "({{ zuul_app_path }}).Input"
     json: "{{ spec | to_json }}"
   vars:
     spec:
+
       name: "{{ meta.name | default('zuul') }}"
-      merger: "{{ merger | default({}) }}"
-      executor: "{{ executor | default({}) }}"
+      merger: "{{ raw_spec['merger'] | default({}) }}"
+      executor: "{{ raw_spec['executor'] | default({}) }}"
+      web: "{{ raw_spec['web'] | default({}) }}"
+      scheduler: "{{ raw_spec['scheduler'] | default({}) }}"
+      launcher: "{{ raw_spec['launcher'] | default({}) }}"
+      external_config: "{{ raw_spec['external_config'] | default({}) }}"
+      connections: "{{ raw_spec['connections'] | default({}) }}"
   register: _dhall
 
 - include_role:

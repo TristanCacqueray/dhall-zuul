@@ -49,8 +49,12 @@ def ansible_main():
 def cli_main():
     parser = argparse.ArgumentParser()
     parser.add_argument('schema')
-    parser.add_argument('json')
+    parser.add_argument('--json')
+    parser.add_argument('--file')
     args = parser.parse_args()
+    if args.file:
+        import yaml, json
+        args.json = json.dumps(yaml.safe_load(open(args.file)))
     print(run(args.schema, args.json))
 
 
