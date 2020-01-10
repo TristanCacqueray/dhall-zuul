@@ -44,6 +44,11 @@ items:
         sshkey=/etc/zuul-gerrit-review.rdoproject.org/id_rsa
         user=zuul
         baseurl=https://review.rdoproject.org/r/
+        [connection github.com]
+        driver=github
+        server=github.com
+        app_id={github.app_id}
+        app_key=/etc/zuul-github-github.com/github_rsa
   - apiVersion: v1
     kind: Secret
     metadata:
@@ -194,7 +199,7 @@ items:
                 - "cat /etc/nodepool/nodepool.yaml /etc/nodepool-user/nodepool.yaml > ~/nodepool.yaml ; nodepool-launcher -d -c ~/nodepool.yaml"
               env:
                 - name: KUBECONFIG
-                  value: /etc/nodepool-kubenertes/kube.config
+                  value: /etc/nodepool-kubernetes/kube.config
                 - name: OS_CLIENT_CONFIG_FILE
                   value: /etc/nodepool-openstack/undefined
               image: quay.io/software-factory/nodepool-launcher:3.4
@@ -205,7 +210,7 @@ items:
                   name: nodepool
                 - mountPath: /etc/nodepool-user
                   name: nodepool-yaml-conf
-                - mountPath: /etc/nodepool-kubernetes
+                - mountPath: /etc/nodepool-kubernetes/
                   name: kube-config
           volumes:
             - name: nodepool

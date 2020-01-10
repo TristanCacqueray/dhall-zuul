@@ -101,7 +101,7 @@
         name: zuul-zk
         scope: user
         state: started
-    - command: "podman create --name zuul-launcher --volume=zuul-nodepool:/etc/nodepool --volume=nodepool-yaml-conf:/etc/nodepool-user --volume=kube-config:/etc/nodepool-kubernetes --env=KUBECONFIG='/etc/nodepool-kubenertes/kube.config' --env=OS_CLIENT_CONFIG_FILE='/etc/nodepool-openstack/undefined' --network=host quay.io/software-factory/nodepool-launcher:3.4 \"sh\" \"-c\" \"cat /etc/nodepool/nodepool.yaml /etc/nodepool-user/nodepool.yaml > ~/nodepool.yaml ; nodepool-launcher -d -c ~/nodepool.yaml\""
+    - command: "podman create --name zuul-launcher --volume=zuul-nodepool:/etc/nodepool --volume=nodepool-yaml-conf:/etc/nodepool-user --volume=kube-config:/etc/nodepool-kubernetes/ --env=KUBECONFIG='/etc/nodepool-kubernetes/kube.config' --env=OS_CLIENT_CONFIG_FILE='/etc/nodepool-openstack/undefined' --network=host quay.io/software-factory/nodepool-launcher:3.4 \"sh\" \"-c\" \"cat /etc/nodepool/nodepool.yaml /etc/nodepool-user/nodepool.yaml > ~/nodepool.yaml ; nodepool-launcher -d -c ~/nodepool.yaml\""
       name: "Create container"
     - file:
         path: "{{ ansible_user_dir }}/.config/systemd/user"
