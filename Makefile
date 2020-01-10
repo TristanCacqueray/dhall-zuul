@@ -1,3 +1,6 @@
+install:
+	kubectl apply -f operator/deploy/crd.yaml -f operator/deploy/operator.yaml
+
 build:
 	operator-sdk build --image-builder podman quay.io/software-factory/zuul-operator:0.0.1
 
